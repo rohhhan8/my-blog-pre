@@ -3,12 +3,27 @@ from django.contrib.auth.models import User
 import firebase_admin
 from firebase_admin import credentials, auth
 from django.conf import settings
+import os
+import json
 
+# Initialize Firebase Admin SDK
 try:
+    # Try to get existing app
     firebase_admin.get_app()
 except ValueError:
-    cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
-    firebase_admin.initialize_app(cred)
+    # Initialize a new app
+    try:
+        # First try to use environment variables if available
+        if settings.FIREBASE_CREDENTIALS:
+            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS)
+            firebase_admin.initialize_app(cred)
+        # Fall back to file-based credentials
+        else:
+            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+            firebase_admin.initialize_app(cred)
+    except Exception as e:
+        print(f"Error initializing Firebase: {str(e)}")
+        # In production, you might want to handle this more gracefully
 
 
 class FirebaseAuthentication(authentication.BaseAuthentication):

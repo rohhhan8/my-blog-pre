@@ -142,7 +142,28 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Firebase configuration
 import os
+import json
+
+# First try to use environment variables for Firebase credentials
+FIREBASE_PROJECT_ID = os.getenv('FIREBASE_PROJECT_ID')
+FIREBASE_PRIVATE_KEY = os.getenv('FIREBASE_PRIVATE_KEY')
+FIREBASE_CLIENT_EMAIL = os.getenv('FIREBASE_CLIENT_EMAIL')
+
+# Path to service account file (fallback)
 FIREBASE_CREDENTIALS_PATH = os.path.join(BASE_DIR, 'firebase', 'serviceAccountKey.json')
+
+# If environment variables are set, create a temporary credentials file
+if FIREBASE_PROJECT_ID and FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL:
+    # Create credentials from environment variables
+    FIREBASE_CREDENTIALS = {
+        "type": "service_account",
+        "project_id": FIREBASE_PROJECT_ID,
+        "private_key": FIREBASE_PRIVATE_KEY,
+        "client_email": FIREBASE_CLIENT_EMAIL,
+    }
+else:
+    # Use the file-based credentials (for local development)
+    FIREBASE_CREDENTIALS = None
 
 
 # REST Framework settings

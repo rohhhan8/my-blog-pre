@@ -14,9 +14,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-dev-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com', os.getenv('ALLOWED_HOST', '')]
 
 # Application definition
 INSTALLED_APPS = [
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -66,7 +67,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'blog_project.wsgi.application'
 
-# MongoDB Database configuration
+# Database configuration
+import dj_database_url
+
+# Default to MongoDB configuration
 DATABASES = {
     'default': {
         'ENGINE': 'djongo',
@@ -77,6 +81,13 @@ DATABASES = {
         }
     }
 }
+
+# If DATABASE_URL is provided (e.g., on Render), use that instead
+if os.getenv('DATABASE_URL'):
+    DATABASES['default'] = dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600
+    )
 
 
 # Password validation
@@ -104,6 +115,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (Uploaded files)
 MEDIA_URL = '/media/'
@@ -134,11 +146,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",
     "http://localhost:3000",  # In case you're using a different port
-    # Add your production domain if needed
 ]
 
-# For development, you can allow all origins
-CORS_ALLOW_ALL_ORIGINS = True
+# Add production frontend URL if available
+if os.getenv('FRONTEND_URL'):
+    CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_URL'))
+
+# Allow all origins during development and initial deployment
+# You can set this to False once you have a stable frontend URL
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL', 'True').lower() == 'true'
 
 # Allow credentials (cookies, authorization headers, etc.)
 CORS_ALLOW_CREDENTIALS = True

@@ -5,19 +5,13 @@
 .env.test.local
 .env.production.local
 
-# Node.js
-node_modules/
-npm-debug.log*
+# Node.jsnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 # package-lock.json - Keep this file for deployment consistency
 
 # React/Frontend
-/client/build
-/client/dist
-/client/.cache
-/client/coverage
-/client/.DS_Store
+
 
 # Python/Django
 __pycache__/

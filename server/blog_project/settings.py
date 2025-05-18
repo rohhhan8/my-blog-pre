@@ -183,15 +183,16 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",
     "http://localhost:3000",  # In case you're using a different port
+    "https://my-blog-pre01.vercel.app",  # Your Vercel frontend URL
 ]
 
-# Add production frontend URL if available
-if os.getenv('FRONTEND_URL'):
+# Add production frontend URL if available and not already in the list
+if os.getenv('FRONTEND_URL') and os.getenv('FRONTEND_URL') not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(os.getenv('FRONTEND_URL'))
 
 # Allow all origins during development and initial deployment
-# You can set this to False once you have a stable frontend URL
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL', 'True').lower() == 'true'
+# This is now set to False by default since we have a stable frontend URL
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL', 'False').lower() == 'true'
 
 # Allow credentials (cookies, authorization headers, etc.)
 CORS_ALLOW_CREDENTIALS = True

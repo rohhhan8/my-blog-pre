@@ -1,29 +1,11 @@
 from rest_framework import authentication, exceptions
 from django.contrib.auth.models import User
-import firebase_admin
-from firebase_admin import credentials, auth
 from django.conf import settings
 import os
 import json
 
-# Initialize Firebase Admin SDK
-try:
-    # Try to get existing app
-    firebase_admin.get_app()
-except ValueError:
-    # Initialize a new app
-    try:
-        # First try to use environment variables if available
-        if settings.FIREBASE_CREDENTIALS:
-            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS)
-            firebase_admin.initialize_app(cred)
-        # Fall back to file-based credentials
-        else:
-            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
-            firebase_admin.initialize_app(cred)
-    except Exception as e:
-        print(f"Error initializing Firebase: {str(e)}")
-        # In production, you might want to handle this more gracefully
+# Import our direct Firebase handling module
+from blog_app.firebase_direct import verify_firebase_token
 
 
 class FirebaseAuthentication(authentication.BaseAuthentication):
@@ -51,8 +33,8 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             # Print token for debugging (remove in production)
             print(f"Attempting to verify token: {id_token[:10]}...")
 
-            # Add clock skew tolerance (60 seconds max) to handle time synchronization issues
-            decoded_token = auth.verify_id_token(id_token, check_revoked=True)
+            # Use our direct verification function
+            decoded_token = verify_firebase_token(id_token)
             print(f"Token verified successfully. Decoded token: {decoded_token}")
 
             uid = decoded_token.get('uid')

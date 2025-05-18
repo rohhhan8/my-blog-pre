@@ -2,6 +2,11 @@
 
 A modern, responsive blog application built with React, Django, Firebase Authentication, and MongoDB.
 
+## Deployed Application
+
+- Frontend: [https://my-blog-pre01.vercel.app](https://my-blog-pre01.vercel.app)
+- Backend: [https://my-blog-pre.onrender.com](https://my-blog-pre.onrender.com)
+
 ## Features
 
 - User authentication with Firebase (signup, login, logout)

@@ -15,11 +15,11 @@ services:
           name: blog-api
           type: web
           property: host
-      # Frontend URL will be added later when you deploy the frontend
-      # - key: FRONTEND_URL
-      #   value: "https://your-frontend-url.vercel.app"
+      # Frontend URL for the deployed Vercel frontend
+      - key: FRONTEND_URL
+        value: "https://my-blog-pre01.vercel.app"
       - key: CORS_ALLOW_ALL
-        value: true
+        value: false
       - key: DATABASE_URL
         fromDatabase:
           name: blog-db

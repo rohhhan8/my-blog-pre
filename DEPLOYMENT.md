@@ -27,18 +27,18 @@ This guide explains how to deploy the blog application to Render (backend) and V
 
 4. **Set Environment Variables**:
    Add the following environment variables in the Render dashboard:
-   
+
    ```
    SECRET_KEY=your-secure-secret-key
    DEBUG=False
-   ALLOWED_HOST=your-render-app-name.onrender.com
-   FRONTEND_URL=https://your-frontend-url.vercel.app
+   ALLOWED_HOST=my-blog-pre.onrender.com
+   FRONTEND_URL=https://my-blog-pre01.vercel.app
    CORS_ALLOW_ALL=False
-   
+
    # If using MongoDB Atlas
    DB_NAME=your-mongodb-name
    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/your-db-name
-   
+
    # If using Render PostgreSQL
    DATABASE_URL=postgres://username:password@host:port/database
    ```
@@ -67,9 +67,9 @@ This guide explains how to deploy the blog application to Render (backend) and V
 
 4. **Set Environment Variables**:
    Add the following environment variables:
-   
+
    ```
-   VITE_API_URL=https://your-backend-service.onrender.com
+   VITE_API_URL=https://my-blog-pre.onrender.com
    ```
 
 5. **Deploy**:
@@ -133,10 +133,10 @@ fetch(`${config.API_URL}/api/posts/`)
 ## Testing Your Deployment
 
 1. **Test the backend API**:
-   - Visit `https://your-backend.onrender.com/api/posts/` to verify the API is working
-   
+   - Visit `https://my-blog-pre.onrender.com/api/posts/` to verify the API is working
+
 2. **Test the frontend**:
-   - Visit your Vercel URL and ensure it can communicate with the backend
+   - Visit `https://my-blog-pre01.vercel.app` and ensure it can communicate with the backend
    - Test all functionality: authentication, creating posts, etc.
 
 ## Troubleshooting

@@ -49,30 +49,11 @@ def upload_image(request):
         if settings.DEBUG:
             os.makedirs(os.path.join(settings.MEDIA_ROOT, upload_dir), exist_ok=True)
 
-        # In production, use Cloudinary directly for faster uploads
-        if not settings.DEBUG:
-            try:
-                import cloudinary.uploader
-                # Upload to Cloudinary
-                result = cloudinary.uploader.upload(
-                    image_file,
-                    folder="blog_images",
-                    resource_type="image"
-                )
-                # Get the secure URL from the result
-                file_url = result['secure_url']
-                logger.info(f"Image uploaded to Cloudinary: {file_url}")
-                return Response({'url': file_url}, status=status.HTTP_201_CREATED)
-            except Exception as cloud_error:
-                logger.error(f"Cloudinary upload error: {str(cloud_error)}")
-                # Fall back to default storage if Cloudinary fails
-
-        # For development or if Cloudinary upload fails, use default storage
+        # Save the file using the default storage backend
         path = default_storage.save(file_path, ContentFile(image_file.read()))
 
         # Generate the URL
-        # For Firebase Storage, the URL will be a public URL to the file
-        # For local storage, it will be a relative URL
+        # This will be a relative URL for local storage
         if hasattr(default_storage, 'url'):
             file_url = default_storage.url(path)
             # If the URL is a relative URL, make it absolute

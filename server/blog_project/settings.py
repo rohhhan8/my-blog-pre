@@ -31,8 +31,6 @@ INSTALLED_APPS = [
     # Third-party apps
     'rest_framework',
     'corsheaders',
-    'cloudinary',
-    'cloudinary_storage',
 
     # Local apps
     'blog_app',
@@ -139,22 +137,9 @@ except ImportError:
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Use Cloudinary for media storage in production
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-
-if not DEBUG:
-    # Cloudinary configuration
-    cloudinary.config(
-        cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME', 'your-cloud-name'),
-        api_key=os.getenv('CLOUDINARY_API_KEY', 'your-api-key'),
-        api_secret=os.getenv('CLOUDINARY_API_SECRET', 'your-api-secret'),
-        secure=True
-    )
-
-    # Use Cloudinary storage for media files
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+# Media files are stored locally in development
+# In production, they are stored on Render's ephemeral filesystem
+# This means they will be lost on redeploy
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

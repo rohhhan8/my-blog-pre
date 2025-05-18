@@ -137,10 +137,6 @@ except ImportError:
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Media files are stored locally in development
-# In production, they are stored on Render's ephemeral filesystem
-# This means they will be lost on redeploy
-
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

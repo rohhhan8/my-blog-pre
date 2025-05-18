@@ -57,23 +57,6 @@ const BlogCard = ({ blog }) => {
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 onError={(e) => {
                   e.target.onerror = null;
-
-                  // Try to fix Render media URLs by replacing with the correct domain
-                  if (blog.image_url && blog.image_url.includes('/media/')) {
-                    const fixedUrl = blog.image_url.replace(
-                      /https?:\/\/[^\/]+\/media\//,
-                      'https://my-blog-pre.onrender.com/media/'
-                    );
-                    if (fixedUrl !== blog.image_url) {
-                      console.log('Trying fixed URL:', fixedUrl);
-                      e.target.src = fixedUrl;
-                      return;
-                    }
-                  }
-
-
-
-                  // If still fails, hide the image and show color accent
                   e.target.style.display = 'none';
                   // Show the color accent as fallback
                   const accentDiv = document.createElement('div');

@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
-from dotenv import load_dotenv
-from pathlib import Path
 
-
-# Load environment variabl
-load_dotenv()
+# Load environment variables from .env file if python-dotenv is installed
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, will use environment variables directly
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,7 +39,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add whitenoise for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -46,6 +46,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Add WhiteNoise middleware if it's installed (for production static files)
+try:
+    import whitenoise
+    MIDDLEWARE.insert(2, 'whitenoise.middleware.WhiteNoiseMiddleware')
+except ImportError:
+    pass
 
 ROOT_URLCONF = 'blog_project.urls'
 
@@ -68,8 +75,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'blog_project.wsgi.application'
 
 # Database configuration
-import dj_database_url
-
 # Default to MongoDB configuration
 DATABASES = {
     'default': {
@@ -82,12 +87,17 @@ DATABASES = {
     }
 }
 
-# If DATABASE_URL is provided (e.g., on Render), use that instead
+# For production environments (e.g., Render)
 if os.getenv('DATABASE_URL'):
-    DATABASES['default'] = dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600
-    )
+    try:
+        import dj_database_url
+        DATABASES['default'] = dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600
+        )
+    except ImportError:
+        # If dj_database_url is not installed, continue using the default database
+        pass
 
 
 # Password validation
@@ -115,7 +125,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Use WhiteNoise for static files if available (for production)
+try:
+    import whitenoise
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+except ImportError:
+    pass
 
 # Media files (Uploaded files)
 MEDIA_URL = '/media/'

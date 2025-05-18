@@ -8,6 +8,10 @@ import uuid
 from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+import logging
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -18,35 +22,69 @@ def upload_image(request):
     """
     if 'image' not in request.FILES:
         return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     image_file = request.FILES['image']
-    
+
     # Validate file type
     allowed_types = ['image/jpeg', 'image/png', 'image/gif']
     if image_file.content_type not in allowed_types:
-        return Response({'error': 'File type not supported. Please upload JPEG, PNG or GIF'}, 
+        return Response({'error': 'File type not supported. Please upload JPEG, PNG or GIF'},
                         status=status.HTTP_400_BAD_REQUEST)
-    
+
     # Validate file size (5MB max)
     if image_file.size > 5 * 1024 * 1024:
-        return Response({'error': 'File too large. Maximum size is 5MB'}, 
+        return Response({'error': 'File too large. Maximum size is 5MB'},
                         status=status.HTTP_400_BAD_REQUEST)
-    
-    # Generate a unique filename
-    file_extension = os.path.splitext(image_file.name)[1]
-    unique_filename = f"{uuid.uuid4()}{file_extension}"
-    
-    # Define the path where the file will be saved
-    upload_dir = 'blog_images'
-    file_path = os.path.join(upload_dir, unique_filename)
-    
-    # Ensure the upload directory exists
-    os.makedirs(os.path.join(settings.MEDIA_ROOT, upload_dir), exist_ok=True)
-    
-    # Save the file
-    path = default_storage.save(file_path, ContentFile(image_file.read()))
-    
-    # Generate the URL
-    file_url = request.build_absolute_uri(settings.MEDIA_URL + path)
-    
-    return Response({'url': file_url}, status=status.HTTP_201_CREATED)
+
+    try:
+        # Generate a unique filename
+        file_extension = os.path.splitext(image_file.name)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+
+        # Define the path where the file will be saved
+        upload_dir = 'blog_images'
+        file_path = os.path.join(upload_dir, unique_filename)
+
+        # In development, ensure the upload directory exists
+        if settings.DEBUG:
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, upload_dir), exist_ok=True)
+
+        # In production, use Cloudinary directly for faster uploads
+        if not settings.DEBUG:
+            try:
+                import cloudinary.uploader
+                # Upload to Cloudinary
+                result = cloudinary.uploader.upload(
+                    image_file,
+                    folder="blog_images",
+                    resource_type="image"
+                )
+                # Get the secure URL from the result
+                file_url = result['secure_url']
+                logger.info(f"Image uploaded to Cloudinary: {file_url}")
+                return Response({'url': file_url}, status=status.HTTP_201_CREATED)
+            except Exception as cloud_error:
+                logger.error(f"Cloudinary upload error: {str(cloud_error)}")
+                # Fall back to default storage if Cloudinary fails
+
+        # For development or if Cloudinary upload fails, use default storage
+        path = default_storage.save(file_path, ContentFile(image_file.read()))
+
+        # Generate the URL
+        # For Firebase Storage, the URL will be a public URL to the file
+        # For local storage, it will be a relative URL
+        if hasattr(default_storage, 'url'):
+            file_url = default_storage.url(path)
+            # If the URL is a relative URL, make it absolute
+            if not file_url.startswith('http'):
+                file_url = request.build_absolute_uri(file_url)
+        else:
+            file_url = request.build_absolute_uri(settings.MEDIA_URL + path)
+
+        logger.info(f"Image uploaded successfully: {file_url}")
+        return Response({'url': file_url}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        logger.error(f"Error uploading image: {str(e)}")
+        return Response({'error': f'Error uploading image: {str(e)}'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)

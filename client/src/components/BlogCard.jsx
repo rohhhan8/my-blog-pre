@@ -57,6 +57,32 @@ const BlogCard = ({ blog }) => {
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 onError={(e) => {
                   e.target.onerror = null;
+
+                  // Try to fix Render media URLs by replacing with the correct domain
+                  if (blog.image_url && blog.image_url.includes('/media/')) {
+                    const fixedUrl = blog.image_url.replace(
+                      /https?:\/\/[^\/]+\/media\//,
+                      'https://my-blog-pre.onrender.com/media/'
+                    );
+                    if (fixedUrl !== blog.image_url) {
+                      console.log('Trying fixed URL:', fixedUrl);
+                      e.target.src = fixedUrl;
+                      return;
+                    }
+                  }
+
+                  // For Cloudinary URLs, try to transform the image to a lower quality if loading fails
+                  if (blog.image_url && blog.image_url.includes('cloudinary.com')) {
+                    // Add quality and format parameters to the URL
+                    const optimizedUrl = blog.image_url.replace('/upload/', '/upload/q_auto,f_auto/');
+                    if (optimizedUrl !== blog.image_url) {
+                      console.log('Trying optimized Cloudinary URL:', optimizedUrl);
+                      e.target.src = optimizedUrl;
+                      return;
+                    }
+                  }
+
+                  // If still fails, hide the image and show color accent
                   e.target.style.display = 'none';
                   // Show the color accent as fallback
                   const accentDiv = document.createElement('div');

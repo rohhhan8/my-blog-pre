@@ -45,7 +45,7 @@ const BlogCard = ({ blog }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-black rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-blog-card-light-hover dark:hover:shadow-blog-card-dark-hover hover:border-gray-300 dark:hover:border-gray-500 hover:transform hover:scale-[1.02] hover:-translate-y-1">
+    <div className="bg-white dark:bg-black rounded-lg border border-gray-200 dark:border-gray-400 overflow-hidden transition-all duration-300 hover:shadow-blog-card-light-hover dark:hover:shadow-blog-card-dark-hover hover:border-gray-300 dark:hover:border-gray-300 hover:transform hover:scale-[1.02] hover:-translate-y-1">
       <Link to={`/blog/${blog._id}`} className="block h-full">
         <div className="flex flex-col h-full">
           {/* Image if available, otherwise show color accent */}
@@ -80,7 +80,7 @@ const BlogCard = ({ blog }) => {
 
             <div className="flex items-center mb-4">
               <div
-                className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium border border-gray-200 dark:border-gray-700"
+                className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium border border-gray-200 dark:border-gray-400"
                 style={{ backgroundColor: getBlogColor() }}
               >
                 {blog.author_name?.charAt(0)?.toUpperCase() || blog.author?.charAt(0)?.toUpperCase() || 'A'}
@@ -101,7 +101,7 @@ const BlogCard = ({ blog }) => {
               {truncateContent(blog.content, 120)}
             </div>
 
-            <div className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-md text-sm font-medium transition-all duration-300 hover:bg-gray-900 hover:text-white hover:border-gray-900 dark:hover:bg-white dark:hover:text-gray-900 dark:hover:border-white group">
+            <div className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-300 text-gray-900 dark:text-white rounded-md text-sm font-medium transition-all duration-300 hover:bg-gray-900 hover:text-white hover:border-gray-900 dark:hover:bg-white dark:hover:text-gray-900 dark:hover:border-white group">
               Read More
               <svg
                 xmlns="http://www.w3.org/2000/svg"

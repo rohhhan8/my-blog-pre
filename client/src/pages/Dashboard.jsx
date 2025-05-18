@@ -306,17 +306,17 @@ const Dashboard = () => {
                 </Link>
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900/80">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500">
+                <thead className="bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Created</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-gray-600">
                   {blogs.map(blog => (
-                    <tr key={blog._id}>
+                    <tr key={blog._id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900">
                       <td className="px-6 py-4 text-gray-800 dark:text-gray-200">{blog.title}</td>
                       <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
                         {blog.created_at

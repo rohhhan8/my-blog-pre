@@ -4,24 +4,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow, format } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
 import { getUserProfile } from '../services/profileService';
-import { likeBlog } from '../services/blogService';
 import axios from 'axios';
 
 const BlogCard = ({ blog }) => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
-  // Check localStorage for liked status
-  const checkLocalLikedStatus = () => {
-    try {
-      const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
-      return likedBlogs[blog._id] === true;
-    } catch (err) {
-      console.error("Error reading liked status from localStorage:", err);
-      return false;
-    }
-  };
-
-  const [isLiked, setIsLiked] = useState(blog.is_liked || checkLocalLikedStatus() || false);
+  const [isLiked, setIsLiked] = useState(blog.is_liked || false);
   const [likeCount, setLikeCount] = useState(blog.like_count || 0);
   const [viewCount, setViewCount] = useState(blog.views || 0);
   const [authorProfile, setAuthorProfile] = useState(null);
@@ -176,16 +164,17 @@ const BlogCard = ({ blog }) => {
 
     try {
       const idToken = await currentUser.getIdToken();
-
-      // Use our likeBlog service function
-      const response = await likeBlog(blog._id, idToken);
+      const response = await axios.post(
+        `/api/blogs/${blog._id}/like/`,
+        {},
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
 
       // Update with the actual server response
-      const newLikeStatus = response.status === 'liked';
-      setIsLiked(newLikeStatus);
-      setLikeCount(response.like_count);
+      setIsLiked(response.data.status === 'liked');
+      setLikeCount(response.data.like_count);
 
-      console.log("Like response:", response);
+      console.log("Like response:", response.data);
     } catch (err) {
       console.error("Error liking post:", err);
       // Revert to original state if there was an error

@@ -4,7 +4,6 @@ import axios from "axios";
 import BlogCard from "../components/BlogCard";
 import { useAuth } from "../context/AuthContext";
 import { getUserProfile } from "../services/profileService";
-import { getAllBlogs } from "../services/blogService";
 
 const Home = () => {
   const { currentUser } = useAuth();
@@ -114,67 +113,22 @@ const Home = () => {
     const fetchBlogs = async () => {
       try {
         setLoading(true);
-
-        // First check if we have prefetched data in sessionStorage
-        const prefetchedData = sessionStorage.getItem('prefetched_blogs');
-        let data;
-
-        if (prefetchedData) {
-          console.log('Using prefetched blog data from sessionStorage');
-          data = JSON.parse(prefetchedData);
-
-          // Set blogs immediately for instant display
+        const response = await axios.get("/api/blogs/");
+        const data = response.data;
+        if (Array.isArray(data)) {
           setBlogs(data);
           setFilteredBlogs(data);
 
-          // Show animation immediately
-          setAnimateBlogs(true);
+          // Delay animation to ensure smooth loading
+          setTimeout(() => setAnimateBlogs(true), 100);
           setError("");
-          setLoading(false);
 
           // Refresh author profiles in the background
           refreshAuthorProfiles(data).catch(err => {
             console.error("Error refreshing author profiles:", err);
           });
-
-          // Fetch fresh data in the background
-          getAllBlogs().then(freshData => {
-            if (Array.isArray(freshData) && freshData.length > 0) {
-              console.log(`Updated with ${freshData.length} blogs from API`);
-              setBlogs(freshData);
-              setFilteredBlogs(freshData);
-
-              // Update sessionStorage with fresh data
-              sessionStorage.setItem('prefetched_blogs', JSON.stringify(freshData));
-              sessionStorage.setItem('prefetch_timestamp', Date.now().toString());
-            }
-          }).catch(err => {
-            console.error("Background refresh error:", err);
-          });
         } else {
-          // No prefetched data, fetch from API
-          console.log('No prefetched data, fetching from API');
-          data = await getAllBlogs();
-
-          if (Array.isArray(data)) {
-            setBlogs(data);
-            setFilteredBlogs(data);
-
-            // Delay animation to ensure smooth loading
-            setTimeout(() => setAnimateBlogs(true), 100);
-            setError("");
-
-            // Store in sessionStorage for future use
-            sessionStorage.setItem('prefetched_blogs', JSON.stringify(data));
-            sessionStorage.setItem('prefetch_timestamp', Date.now().toString());
-
-            // Refresh author profiles in the background
-            refreshAuthorProfiles(data).catch(err => {
-              console.error("Error refreshing author profiles:", err);
-            });
-          } else {
-            throw new Error("Invalid response structure");
-          }
+          throw new Error("Invalid response structure");
         }
       } catch (err) {
         console.error("Error fetching blogs:", err);

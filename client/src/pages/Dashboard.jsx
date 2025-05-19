@@ -171,10 +171,6 @@ const Dashboard = () => {
           if (blog.author === 'Official Editz') {
             blog.author = 'Kuldeep';
           }
-
-          // Ensure is_liked is set to true for all blogs in the liked section
-          blog.is_liked = true;
-
           return blog;
         }) : [];
 
@@ -190,21 +186,6 @@ const Dashboard = () => {
             };
           });
           setBlogStats(prevStats => ({ ...prevStats, ...stats }));
-        }
-
-        // If we got an empty array but have liked blogs in localStorage, use those as fallback
-        if (Array.isArray(likedBlogsData) && likedBlogsData.length === 0) {
-          try {
-            const likedBlogsFromStorage = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
-            const likedBlogIds = Object.keys(likedBlogsFromStorage).filter(id => likedBlogsFromStorage[id]);
-
-            if (likedBlogIds.length > 0) {
-              console.log("Found liked blogs in localStorage:", likedBlogIds);
-              setLikedError("Using cached liked blogs. Some information may be outdated.");
-            }
-          } catch (storageErr) {
-            console.error("Error reading from localStorage:", storageErr);
-          }
         }
       } catch (err) {
         console.error("Error fetching liked blogs:", err);

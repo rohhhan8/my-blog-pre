@@ -1,12 +1,11 @@
 import axios from 'axios';
-import apiClient from './apiClient';
 
 /**
  * Get all blogs
  * @returns {Promise<Array>} Array of blogs
  */
 export const getAllBlogs = async () => {
-  const response = await apiClient.get('/blogs/');
+  const response = await axios.get('/api/blogs/');
   return response.data;
 };
 
@@ -18,12 +17,12 @@ export const getAllBlogs = async () => {
 export const getBlogById = async (id) => {
   try {
     // Try with trailing slash first
-    const response = await apiClient.get(`/blogs/${id}/`);
+    const response = await axios.get(`/api/blogs/${id}/`);
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 404) {
       // If 404, try without trailing slash
-      const response = await apiClient.get(`/blogs/${id}`);
+      const response = await axios.get(`/api/blogs/${id}`);
       return response.data;
     }
     throw error;
@@ -39,7 +38,7 @@ export const getBlogById = async (id) => {
  */
 export const deleteBlog = async (id, idToken, customHeaders = {}) => {
   console.log(`Attempting to delete blog with ID: ${id}`);
-
+  
   // Get current user info from Firebase token
   let userInfo = {};
   try {
@@ -57,7 +56,7 @@ export const deleteBlog = async (id, idToken, customHeaders = {}) => {
   } catch (e) {
     console.error("Error extracting user info from token:", e);
   }
-
+  
   // Combine default headers with custom headers
   const headers = {
     'Authorization': `Bearer ${idToken}`,
@@ -65,7 +64,7 @@ export const deleteBlog = async (id, idToken, customHeaders = {}) => {
     ...userInfo,
     ...customHeaders
   };
-
+  
   // Try multiple approaches to delete the blog
   try {
     // First try with trailing slash
@@ -76,7 +75,7 @@ export const deleteBlog = async (id, idToken, customHeaders = {}) => {
     return response;
   } catch (error) {
     console.log("Delete with trailing slash failed:", error);
-
+    
     // If that fails, try without trailing slash
     try {
       console.log(`Making DELETE request to /api/blogs/${id}`);
@@ -85,18 +84,18 @@ export const deleteBlog = async (id, idToken, customHeaders = {}) => {
       return response;
     } catch (secondError) {
       console.log("Delete without trailing slash failed:", secondError);
-
+      
       // If both fail, try with a different approach using fetch API
       console.log("Trying with fetch API as last resort");
       const fetchResponse = await fetch(`/api/blogs/${id}/`, {
         method: 'DELETE',
         headers: headers
       });
-
+      
       if (!fetchResponse.ok) {
         throw new Error(`Fetch delete failed with status ${fetchResponse.status}`);
       }
-
+      
       console.log("Delete successful with fetch API:", fetchResponse);
       return { status: fetchResponse.status };
     }
@@ -110,30 +109,12 @@ export const deleteBlog = async (id, idToken, customHeaders = {}) => {
  * @returns {Promise<Object>} Response with like status and count
  */
 export const likeBlog = async (id, idToken) => {
-  // Set the auth token for the API client
-  apiClient.setAuthToken(idToken);
-
-  try {
-    const response = await apiClient.post(`/blogs/${id}/like/`, {});
-
-    // Update localStorage with the like status
-    try {
-      const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
-      if (response.data.status === 'liked') {
-        likedBlogs[id] = true;
-      } else {
-        delete likedBlogs[id];
-      }
-      localStorage.setItem('likedBlogs', JSON.stringify(likedBlogs));
-    } catch (storageErr) {
-      console.error("Error updating localStorage:", storageErr);
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("Error liking blog:", error);
-    throw error;
-  }
+  const response = await axios.post(
+    `/api/blogs/${id}/like/`,
+    {},
+    { headers: { Authorization: `Bearer ${idToken}` } }
+  );
+  return response.data;
 };
 
 /**
@@ -143,46 +124,53 @@ export const likeBlog = async (id, idToken) => {
  */
 export const getLikedBlogs = async (idToken) => {
   console.log("Fetching liked blogs with token:", idToken.substring(0, 10) + "...");
-
-  // Set the auth token for the API client
-  apiClient.setAuthToken(idToken);
-
+  
   try {
-    // Use our API client which has built-in fallback for liked blogs
-    const response = await apiClient.get('/blogs/liked/');
+    // First try with trailing slash
+    const response = await axios.get('/api/blogs/liked/', {
+      headers: { 
+        Authorization: `Bearer ${idToken}`,
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
     console.log("Liked blogs fetched successfully:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching liked blogs:", error);
-
-    // Fallback to localStorage if API fails
+    console.error("Error fetching liked blogs with trailing slash:", error);
+    
+    // If that fails, try without trailing slash
     try {
-      console.log("Using localStorage fallback for liked blogs");
-      const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
-      const likedBlogIds = Object.keys(likedBlogs).filter(id => likedBlogs[id]);
-
-      if (likedBlogIds.length > 0) {
-        // Try to fetch each blog individually
-        const allBlogsResponse = await apiClient.get('/blogs/');
-        if (allBlogsResponse.data && Array.isArray(allBlogsResponse.data)) {
-          const likedBlogsData = allBlogsResponse.data.filter(blog =>
-            likedBlogIds.includes(blog._id)
-          );
-
-          // Mark these blogs as liked
-          likedBlogsData.forEach(blog => {
-            blog.is_liked = true;
-          });
-
-          return likedBlogsData;
+      const response = await axios.get('/api/blogs/liked', {
+        headers: { 
+          Authorization: `Bearer ${idToken}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
+      });
+      console.log("Liked blogs fetched successfully without trailing slash:", response.data);
+      return response.data;
+    } catch (secondError) {
+      console.error("Error fetching liked blogs without trailing slash:", secondError);
+      
+      // If both fail, try with a different approach using fetch API
+      console.log("Trying with fetch API as last resort");
+      const fetchResponse = await fetch('/api/blogs/liked/', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+      });
+      
+      if (!fetchResponse.ok) {
+        throw new Error(`Fetch liked blogs failed with status ${fetchResponse.status}`);
       }
-
-      // If we can't get the blogs, return an empty array
-      return [];
-    } catch (fallbackError) {
-      console.error("Fallback for liked blogs failed:", fallbackError);
-      return []; // Return empty array instead of throwing
+      
+      const data = await fetchResponse.json();
+      console.log("Liked blogs fetched successfully with fetch API:", data);
+      return data;
     }
   }
 };
@@ -193,12 +181,6 @@ export const getLikedBlogs = async (idToken) => {
  * @returns {Promise<Object>} Response with updated view count
  */
 export const trackBlogView = async (id) => {
-  try {
-    const response = await apiClient.get(`/blogs/${id}/view/`);
-    return response.data;
-  } catch (error) {
-    console.error("Error tracking blog view:", error);
-    // Return a default response to avoid breaking the UI
-    return { views: 0, message: 'Error tracking view' };
-  }
+  const response = await axios.get(`/api/blogs/${id}/view/`);
+  return response.data;
 };

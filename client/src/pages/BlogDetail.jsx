@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -8,9 +8,20 @@ const BlogDetail = () => {
   const { id, _id } = useParams();  // Handle both route parameter formats
   const blogId = id || _id;  // Use whichever parameter is available
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
+  const [shareUrl, setShareUrl] = useState("");
+  const [showShareToast, setShowShareToast] = useState(false);
+
+  // Set share URL when component mounts
+  useEffect(() => {
+    setShareUrl(window.location.href);
+  }, []);
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -35,7 +46,31 @@ const BlogDetail = () => {
 
         console.log("Blog data:", response.data);
         setBlog(response.data);
+
+        // Set like status and counts
+        if (response.data.is_liked !== undefined) {
+          setIsLiked(response.data.is_liked);
+        }
+
+        if (response.data.like_count !== undefined) {
+          setLikeCount(response.data.like_count);
+        }
+
+        if (response.data.views !== undefined) {
+          setViewCount(response.data.views);
+        }
+
         setError("");
+
+        // Track view after fetching blog
+        try {
+          const viewResponse = await axios.get(`/api/blogs/${blogId}/view/`);
+          if (viewResponse.data.views) {
+            setViewCount(viewResponse.data.views);
+          }
+        } catch (viewErr) {
+          console.error("Error tracking view:", viewErr);
+        }
       } catch (err) {
         console.error("Error fetching blog:", err);
         console.error("Response data:", err.response?.data);
@@ -48,7 +83,32 @@ const BlogDetail = () => {
           if (foundBlog) {
             console.log("Found blog in all blogs:", foundBlog);
             setBlog(foundBlog);
+
+            // Set like status and counts
+            if (foundBlog.is_liked !== undefined) {
+              setIsLiked(foundBlog.is_liked);
+            }
+
+            if (foundBlog.like_count !== undefined) {
+              setLikeCount(foundBlog.like_count);
+            }
+
+            if (foundBlog.views !== undefined) {
+              setViewCount(foundBlog.views);
+            }
+
             setError("");
+
+            // Track view after fetching blog
+            try {
+              const viewResponse = await axios.get(`/api/blogs/${blogId}/view/`);
+              if (viewResponse.data.views) {
+                setViewCount(viewResponse.data.views);
+              }
+            } catch (viewErr) {
+              console.error("Error tracking view:", viewErr);
+            }
+
             return;
           }
         } catch (listErr) {
@@ -98,6 +158,49 @@ const BlogDetail = () => {
     ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
     : 'Unknown date';
 
+  // Handle like/unlike
+  const handleLike = async () => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const idToken = await currentUser.getIdToken();
+      const response = await axios.post(
+        `/api/blogs/${blogId}/like/`,
+        {},
+        { headers: { Authorization: `Bearer ${idToken}` } }
+      );
+
+      setIsLiked(response.data.status === 'liked');
+      setLikeCount(response.data.like_count);
+    } catch (err) {
+      console.error("Error liking post:", err);
+    }
+  };
+
+  // Handle share
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        // Use Web Share API if available
+        await navigator.share({
+          title: blog.title,
+          text: `Check out this blog post: ${blog.title}`,
+          url: shareUrl,
+        });
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        setShowShareToast(true);
+        setTimeout(() => setShowShareToast(false), 3000);
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
+    }
+  };
+
   // Check if current user is the author - handle different author formats
   console.log("Checking if user is author:");
   console.log("Blog author:", blog.author);
@@ -136,7 +239,14 @@ const BlogDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black pt-24 pb-12">
+    <div className="min-h-screen bg-white dark:bg-black pt-24 pb-12 relative">
+      {/* Share toast notification */}
+      {showShareToast && (
+        <div className="fixed bottom-4 right-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in">
+          Link copied to clipboard!
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Banner Image */}
@@ -169,22 +279,67 @@ const BlogDetail = () => {
                 <p className="text-base font-medium text-gray-900 dark:text-white">
                   {blog.author_name || blog.author || 'Anonymous'}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {formattedDate}
-                </p>
+                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
+                  <span>{formattedDate}</span>
+                  <span className="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    {viewCount} views
+                  </span>
+                </div>
               </div>
 
-              {/* Edit button if user is author */}
-              {isAuthor && (
-                <div className="ml-auto">
+              <div className="ml-auto flex items-center space-x-3">
+                {/* Like button */}
+                <button
+                  onClick={handleLike}
+                  className={`flex items-center space-x-1 px-3 py-1 rounded-full border ${
+                    isLiked
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
+                      : 'bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900'
+                  } transition-colors`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill={isLiked ? "currentColor" : "none"}
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  <span>{likeCount}</span>
+                </button>
+
+                {/* Share button */}
+                <button
+                  onClick={handleShare}
+                  className="flex items-center space-x-1 px-3 py-1 rounded-full border bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                  <span>Share</span>
+                </button>
+
+                {/* Edit button if user is author */}
+                {isAuthor && (
                   <Link
                     to={`/edit/${blogId}`}
                     className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-2 rounded text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   >
                     Edit Post
                   </Link>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Content */}

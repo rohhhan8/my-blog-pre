@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.decorators import action
 from django.contrib.auth.models import User
 import logging
 from bson.objectid import ObjectId
@@ -18,13 +19,48 @@ class BlogViewSet(viewsets.ModelViewSet):
     serializer_class = BlogSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'view']:
             permission_classes = [permissions.AllowAny]
-        elif self.action == 'create':
+        elif self.action in ['create', 'like']:
             permission_classes = [permissions.IsAuthenticated]
         else:
             permission_classes = [permissions.IsAuthenticated, IsAuthorOrReadOnly]
         return [permission() for permission in permission_classes]
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def like(self, request, pk=None):
+        """
+        Like or unlike a blog post
+        """
+        blog = self.get_object()
+        user = request.user
+
+        if blog.likes.filter(id=user.id).exists():
+            blog.likes.remove(user)
+            return Response({'status': 'unliked', 'like_count': blog.likes.count()})
+        else:
+            blog.likes.add(user)
+            return Response({'status': 'liked', 'like_count': blog.likes.count()})
+
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
+    def view(self, request, pk=None):
+        """
+        Track a view for a blog post
+        """
+        blog = self.get_object()
+        blog.views += 1
+        blog.save()
+        return Response({'views': blog.views})
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def liked(self, request):
+        """
+        Get all blogs liked by the current user
+        """
+        user = request.user
+        liked_blogs = Blog.objects.filter(likes=user).order_by('-created_at')
+        serializer = self.get_serializer(liked_blogs, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         # Use the authenticated user from the request

@@ -4,7 +4,7 @@
 .env.development.local
 .env.test.local
 .env.production.local
-
+node_modules/
 # Node.jsnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*

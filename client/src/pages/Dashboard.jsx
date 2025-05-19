@@ -8,12 +8,17 @@ const Dashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState([]);
+  const [likedBlogs, setLikedBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [likedLoading, setLikedLoading] = useState(true);
   const [error, setError] = useState("");
+  const [likedError, setLikedError] = useState("");
   const [deleteId, setDeleteId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // Used to trigger a refresh
+  const [activeTab, setActiveTab] = useState("myBlogs"); // "myBlogs" or "likedBlogs"
+  const [blogStats, setBlogStats] = useState({}); // Store view and like counts
 
   useEffect(() => {
     if (!currentUser) {
@@ -118,6 +123,48 @@ const Dashboard = () => {
 
     fetchUserBlogs();
   }, [currentUser, navigate, refreshKey]); // Add refreshKey to dependencies to trigger refresh
+
+  // Fetch liked blogs
+  useEffect(() => {
+    if (!currentUser) {
+      return;
+    }
+
+    const fetchLikedBlogs = async () => {
+      setLikedLoading(true);
+      setLikedError("");
+
+      try {
+        // Get a fresh token
+        const idToken = await currentUser.getIdToken(true);
+
+        // Fetch liked blogs
+        const response = await axios.get("/api/blogs/liked/", {
+          headers: { Authorization: `Bearer ${idToken}` }
+        });
+
+        console.log("Liked blogs:", response.data);
+        setLikedBlogs(response.data);
+
+        // Extract stats for each blog
+        const stats = {};
+        response.data.forEach(blog => {
+          stats[blog._id] = {
+            views: blog.views || 0,
+            likes: blog.like_count || 0
+          };
+        });
+        setBlogStats(prevStats => ({ ...prevStats, ...stats }));
+      } catch (err) {
+        console.error("Error fetching liked blogs:", err);
+        setLikedError("Failed to load your liked blogs. Please try again.");
+      } finally {
+        setLikedLoading(false);
+      }
+    };
+
+    fetchLikedBlogs();
+  }, [currentUser, refreshKey]);
 
   const handleDeleteClick = (blogId) => {
     setDeleteId(blogId);
@@ -266,79 +313,206 @@ const Dashboard = () => {
         {/* Blog List */}
         <div className="bg-white dark:bg-black rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
           <div className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                My Blog Posts
-              </h2>
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => setActiveTab("myBlogs")}
+                  className={`text-lg font-medium pb-2 border-b-2 transition-colors ${
+                    activeTab === "myBlogs"
+                      ? "text-gray-900 dark:text-white border-gray-900 dark:border-white"
+                      : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  My Blog Posts
+                </button>
+                <button
+                  onClick={() => setActiveTab("likedBlogs")}
+                  className={`text-lg font-medium pb-2 border-b-2 transition-colors ${
+                    activeTab === "likedBlogs"
+                      ? "text-gray-900 dark:text-white border-gray-900 dark:border-white"
+                      : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300"
+                  }`}
+                >
+                  Liked Blogs
+                </button>
+              </div>
               <button
                 onClick={() => setRefreshKey(prevKey => prevKey + 1)}
                 className="flex items-center text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-                disabled={loading}
+                disabled={loading || likedLoading}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className={`h-5 w-5 mr-1 ${loading ? 'animate-spin' : ''}`}
+                  className={`h-5 w-5 mr-1 ${(loading || likedLoading) ? 'animate-spin' : ''}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                {loading ? 'Refreshing...' : 'Refresh'}
+                {(loading || likedLoading) ? 'Refreshing...' : 'Refresh'}
               </button>
             </div>
 
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white"></div>
-              </div>
-            ) : error ? (
-              <div className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-4 rounded-md border border-gray-200 dark:border-gray-700">
-                {error}
-              </div>
-            ) : blogs.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  You haven't created any blog posts yet.
-                </p>
-                <Link to="/create" className="text-gray-900 dark:text-white hover:underline">
-                  Create your first blog post
-                </Link>
-              </div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500">
-                <thead className="bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Created</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-gray-600">
-                  {blogs.map(blog => (
-                    <tr key={blog._id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900">
-                      <td className="px-6 py-4 text-gray-800 dark:text-gray-200">{blog.title}</td>
-                      <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
-                        {blog.created_at
-                          ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
-                          : "Unknown"}
-                      </td>
-                      <td className="px-6 py-4 flex space-x-4">
-                        <Link to={`/blog/${blog._id}`} className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline">View</Link>
-                        <Link to={`/edit/${blog._id}`} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 rounded-sm text-xs hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-                          Edit
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteClick(blog._id)}
-                          className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* My Blogs Tab */}
+            {activeTab === "myBlogs" && (
+              <>
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white"></div>
+                  </div>
+                ) : error ? (
+                  <div className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                    {error}
+                  </div>
+                ) : blogs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
+                      You haven't created any blog posts yet.
+                    </p>
+                    <Link to="/create" className="text-gray-900 dark:text-white hover:underline">
+                      Create your first blog post
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto -mx-6">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500">
+                      <thead className="bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Title</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden sm:table-cell">Created</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden md:table-cell">Stats</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-gray-600">
+                        {blogs.map(blog => (
+                          <tr key={blog._id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td className="px-6 py-4">
+                              <div className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</div>
+                              <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 sm:hidden">
+                                {blog.created_at
+                                  ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
+                                  : "Unknown"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
+                              {blog.created_at
+                                ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
+                                : "Unknown"}
+                            </td>
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300 hidden md:table-cell">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  {blog.views || 0}
+                                </div>
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                  {blog.like_count || 0}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-wrap gap-3">
+                                <Link to={`/blog/${blog._id}`} className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline">View</Link>
+                                <Link to={`/edit/${blog._id}`} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 rounded-sm text-xs hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                                  Edit
+                                </Link>
+                                <button
+                                  onClick={() => handleDeleteClick(blog._id)}
+                                  className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Liked Blogs Tab */}
+            {activeTab === "likedBlogs" && (
+              <>
+                {likedLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white"></div>
+                  </div>
+                ) : likedError ? (
+                  <div className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                    {likedError}
+                  </div>
+                ) : likedBlogs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
+                      You haven't liked any blog posts yet.
+                    </p>
+                    <Link to="/" className="text-gray-900 dark:text-white hover:underline">
+                      Explore blogs to like
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto -mx-6">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500">
+                      <thead className="bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Title</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden sm:table-cell">Author</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden md:table-cell">Stats</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-gray-600">
+                        {likedBlogs.map(blog => (
+                          <tr key={blog._id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td className="px-6 py-4">
+                              <div className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</div>
+                              <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 sm:hidden">
+                                By {blog.author_name || "Anonymous"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
+                              {blog.author_name || "Anonymous"}
+                            </td>
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300 hidden md:table-cell">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  {blog.views || 0}
+                                </div>
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                  {blog.like_count || 0}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-wrap gap-3">
+                                <Link to={`/blog/${blog._id}`} className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline">View</Link>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

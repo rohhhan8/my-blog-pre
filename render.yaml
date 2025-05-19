@@ -17,7 +17,7 @@ services:
           property: host
       # Frontend URL for the deployed Vercel frontend
       - key: FRONTEND_URL
-        value: "https://my-blog-pre01.vercel.app"
+        value: "https://moodblog.vercel.app"
       - key: CORS_ALLOW_ALL
         value: false
       - key: DATABASE_URL

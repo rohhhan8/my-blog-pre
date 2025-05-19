@@ -4,7 +4,7 @@ A modern, responsive blog application built with React, Django, Firebase Authent
 
 ## Deployed Application
 
-- Frontend: [https://my-blog-pre01.vercel.app](https://my-blog-pre01.vercel.app)
+- Frontend: [https://moodblog.vercel.app](https://moodblog.vercel.app)
 - Backend: [https://my-blog-pre.onrender.com](https://my-blog-pre.onrender.com)
 
 ## Features

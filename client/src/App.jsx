@@ -17,6 +17,8 @@ import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import NotFound from './pages/NotFound';
 import axios from 'axios';
+import { getAllBlogs } from './services/blogService';
+import apiClient from './services/apiClient';
 
 // Set up axios defaults
 axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -119,6 +121,54 @@ function App() {
     // Add custom animations
     addCustomAnimations();
   }, [theme]);
+
+  // Prefetch data for faster page loads
+  useEffect(() => {
+    // Function to prefetch data
+    const prefetchData = async () => {
+      try {
+        console.log('Prefetching blog data...');
+        // Prefetch all blogs
+        const blogs = await getAllBlogs();
+        console.log(`Prefetched ${blogs.length} blogs`);
+
+        // Store in sessionStorage for quick access
+        sessionStorage.setItem('prefetched_blogs', JSON.stringify(blogs));
+        sessionStorage.setItem('prefetch_timestamp', Date.now().toString());
+
+        // Prefetch static assets
+        const assetsToPreload = [
+          '/manifest.json',
+          '/icons/icon-192x192.png',
+          '/icons/icon-512x512.png'
+        ];
+
+        // Use requestIdleCallback to preload assets when browser is idle
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(() => {
+            assetsToPreload.forEach(asset => {
+              const link = document.createElement('link');
+              link.rel = 'prefetch';
+              link.href = asset;
+              document.head.appendChild(link);
+            });
+          });
+        }
+      } catch (error) {
+        console.error('Error prefetching data:', error);
+      }
+    };
+
+    // Check if we already have fresh data (less than 5 minutes old)
+    const timestamp = sessionStorage.getItem('prefetch_timestamp');
+    const fiveMinutes = 5 * 60 * 1000;
+
+    if (!timestamp || (Date.now() - parseInt(timestamp)) > fiveMinutes) {
+      prefetchData();
+    } else {
+      console.log('Using cached prefetched data');
+    }
+  }, []);
 
   // Add a global effect to replace author names in the DOM
   useEffect(() => {

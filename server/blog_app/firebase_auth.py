@@ -75,12 +75,27 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             import traceback
             traceback.print_exc()
 
-            # Check if this is a clock skew error
-            if "Token used too early" in str(e) and settings.DEBUG:
+            # Check if this is a clock skew error and we're in development mode
+            if "Token used too early" in str(e) and hasattr(settings, 'FIREBASE_AUTH_DEVELOPMENT_MODE') and settings.FIREBASE_AUTH_DEVELOPMENT_MODE:
                 # In development mode, try to extract user info from the token without verification
                 try:
-                    # If we have decoded_token from the fallback mechanism
+                    # Try to decode the token manually if we don't have a decoded token yet
+                    decoded_token = None
+
+                    # First check if we already have a decoded token from a previous step
                     if 'decoded_token' in locals() and decoded_token:
+                        print("Using previously decoded token")
+                    else:
+                        # Try to decode the token manually
+                        try:
+                            import jwt
+                            decoded_token = jwt.decode(id_token, options={"verify_signature": False})
+                            print(f"Manually decoded token in auth class: {decoded_token}")
+                        except Exception as jwt_error:
+                            print(f"Failed to manually decode token: {str(jwt_error)}")
+
+                    # If we have a decoded token (from either source), use it
+                    if decoded_token:
                         uid = decoded_token.get('uid') or decoded_token.get('user_id') or decoded_token.get('sub')
                         email = decoded_token.get('email', '')
                         display_name = decoded_token.get('name', '') or decoded_token.get('display_name', '')

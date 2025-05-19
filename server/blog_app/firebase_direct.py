@@ -77,36 +77,63 @@ def verify_firebase_token(token):
         if not initialize_firebase():
             raise Exception("Firebase could not be initialized")
 
-        # Verify the token with increased clock skew tolerance (5 minutes)
-        # This helps with "Token used too early" errors due to clock synchronization issues
+        # Verify the token
         print(f"Verifying token: {token[:10]}...")
 
-        # Use a 5-minute clock skew tolerance (300 seconds)
-        # Default is only 5 seconds which is too strict for some environments
-        decoded_token = auth.verify_id_token(token, check_revoked=False, clock_skew_seconds=300)
-        print(f"Token verified successfully: {decoded_token}")
-        return decoded_token
+        # Try to verify the token with the standard parameters
+        # Firebase Admin SDK 6.1.0 doesn't support clock_skew_seconds
+        try:
+            decoded_token = auth.verify_id_token(token, check_revoked=False)
+            print(f"Token verified successfully: {decoded_token}")
+            return decoded_token
+        except ValueError as ve:
+            # Handle specific value errors that might be related to token timing
+            error_msg = str(ve)
+            if "Token used too early" in error_msg:
+                print("Token timing issue detected. Attempting fallback verification...")
+
+                # For development environments, we can try to extract the token data
+                if hasattr(settings, 'FIREBASE_AUTH_DEVELOPMENT_MODE') and settings.FIREBASE_AUTH_DEVELOPMENT_MODE:
+                    try:
+                        import jwt
+                        decoded = jwt.decode(token, options={"verify_signature": False})
+                        print(f"DEVELOPMENT MODE: Using unverified token data: {decoded}")
+                        return decoded
+                    except Exception as jwt_error:
+                        print(f"JWT fallback failed: {str(jwt_error)}")
+                        raise ve
+                else:
+                    print("Production mode: Rejecting token with timing issue")
+                    raise ve
+            else:
+                # Re-raise the original error for other value errors
+                raise ve
     except Exception as e:
-        print(f"Token verification failed: {str(e)}")
-        print(f"Firebase authentication error: {str(e)}")
+        error_message = str(e)
+        print(f"Token verification failed: {error_message}")
 
-        # For "Token used too early" errors, try to extract the user ID from the token
-        # This is a fallback mechanism for development environments
-        if "Token used too early" in str(e):
-            try:
-                import jwt
-                # Just decode without verification to extract user info
-                # This is only for development - would be a security risk in production
-                decoded = jwt.decode(token, options={"verify_signature": False})
-                print(f"WARNING: Using unverified token data as fallback: {decoded}")
+        # Check for specific error types and provide more helpful messages
+        if "verify_id_token() got an unexpected keyword argument" in error_message:
+            print("Firebase Admin SDK version mismatch. Check your firebase-admin version.")
+        elif "Token used too early" in error_message:
+            print("Clock skew detected. Server time might be behind Firebase servers.")
 
-                # Check if this is a development environment
-                if settings.DEBUG:
+            # Try to extract basic info from token without verification
+            # Only in development mode
+            if hasattr(settings, 'FIREBASE_AUTH_DEVELOPMENT_MODE') and settings.FIREBASE_AUTH_DEVELOPMENT_MODE:
+                try:
+                    # Try to manually decode the token without verification
+                    import jwt
+                    decoded = jwt.decode(token, options={"verify_signature": False})
+                    print(f"DEVELOPMENT MODE: Using unverified token data: {decoded}")
+
+                    # In development, we'll allow this as a fallback
                     print("Development mode: Allowing unverified token")
                     return decoded
-                else:
-                    print("Production mode: Rejecting unverified token")
-            except Exception as jwt_error:
-                print(f"Failed to decode token as fallback: {str(jwt_error)}")
+                except Exception as jwt_error:
+                    print(f"Failed to decode token as fallback: {str(jwt_error)}")
+            else:
+                print("Production mode: Rejecting unverified token")
 
+        # Re-raise the original exception
         raise e

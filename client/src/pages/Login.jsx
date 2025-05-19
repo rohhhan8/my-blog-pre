@@ -23,12 +23,31 @@ const Login = () => {
 
     try {
       const userCredential = await login(email, password);
-      const token = await userCredential.user.getIdToken();
+
+      // Force token refresh to ensure we have the latest token
+      const token = await userCredential.user.getIdToken(true);
+
+      // Store token in localStorage for API requests
       localStorage.setItem('authToken', token);
+
+      // Also store user info for better UX
+      const user = userCredential.user;
+      localStorage.setItem('userDisplayName', user.displayName || '');
+      localStorage.setItem('userEmail', user.email || '');
+
+      console.log('Login successful, token stored');
       navigate(from, { replace: true });
     } catch (err) {
-      setError('Failed to log in. Please check your credentials.');
-      console.error(err);
+      console.error('Login error:', err);
+
+      // Provide more specific error messages based on Firebase error codes
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('Invalid email or password. Please check your credentials.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many failed login attempts. Please try again later or reset your password.');
+      } else {
+        setError('Failed to log in. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
@@ -40,12 +59,30 @@ const Login = () => {
 
     try {
       const user = await signInWithGoogle();
-      const token = await user.getIdToken();
+
+      // Force token refresh to ensure we have the latest token
+      const token = await user.getIdToken(true);
+
+      // Store token in localStorage for API requests
       localStorage.setItem('authToken', token);
+
+      // Also store user info for better UX
+      localStorage.setItem('userDisplayName', user.displayName || '');
+      localStorage.setItem('userEmail', user.email || '');
+
+      console.log('Google sign-in successful, token stored');
       navigate(from, { replace: true });
     } catch (err) {
-      setError('Failed to sign in with Google.');
-      console.error(err);
+      console.error('Google sign-in error:', err);
+
+      // Provide more specific error messages based on error type
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('Sign-in was cancelled. Please try again.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setError('Pop-up was blocked by your browser. Please allow pop-ups for this site.');
+      } else {
+        setError('Failed to sign in with Google. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }

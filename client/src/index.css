@@ -22,6 +22,17 @@
   }
 }
 
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0) translateX(-50%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(-15px) translateX(-50%);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -45,6 +56,24 @@
 
   h3 {
     @apply text-xl md:text-2xl;
+  }
+}
+
+@layer components {
+  .scroll-down-arrow {
+    @apply absolute bottom-6 sm:bottom-8 left-1/2 z-20;
+    animation: bounce 1.5s infinite;
+    filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+  }
+
+  .scroll-down-arrow-inner {
+    @apply bg-white/90 dark:bg-gray-900/90 rounded-full p-2.5 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300;
+  }
+
+  @media (max-height: 700px) {
+    .scroll-down-arrow {
+      @apply bottom-4;
+    }
   }
 }
 

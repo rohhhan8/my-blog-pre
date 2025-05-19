@@ -56,6 +56,29 @@ export function AuthProvider({ children }) {
     return signOut(auth);
   }
 
+  // Update user profile
+  async function updateUserProfile(displayName, photoURL) {
+    if (!currentUser) {
+      throw new Error("No user is currently logged in");
+    }
+
+    try {
+      await updateProfile(currentUser, {
+        displayName: displayName || currentUser.displayName,
+        photoURL: photoURL || currentUser.photoURL
+      });
+
+      // Force a refresh of the user object
+      const user = auth.currentUser;
+      setCurrentUser({ ...user });
+
+      return user;
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      throw error;
+    }
+  }
+
   // Track auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -72,7 +95,8 @@ export function AuthProvider({ children }) {
     signup,
     login,
     logout,
-    signInWithGoogle
+    signInWithGoogle,
+    updateUserProfile
   };
 
   return (

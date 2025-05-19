@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
+import { deleteBlog, getLikedBlogs } from "../services/blogService";
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
@@ -40,8 +41,19 @@ const Dashboard = () => {
           if (Array.isArray(response.data) && response.data.length > 0) {
             console.log("All blogs fetched:", response.data);
 
+            // Process blogs to replace "Official Editz" with "Kuldeep"
+            const processedBlogs = response.data.map(blog => {
+              if (blog.author_name === 'Official Editz') {
+                blog.author_name = 'Kuldeep';
+              }
+              if (blog.author === 'Official Editz') {
+                blog.author = 'Kuldeep';
+              }
+              return blog;
+            });
+
             // Filter blogs by the current user
-            const userBlogs = response.data.filter(blog => {
+            const userBlogs = processedBlogs.filter(blog => {
               // Extract author identifier based on different possible formats
               let authorId;
               if (typeof blog.author === "object") {
@@ -57,6 +69,12 @@ const Dashboard = () => {
               console.log(`Blog ${blog._id} - Title: ${blog.title}`);
               console.log(`  Author: ${blog.author}, Author ID: ${authorIdFromField}`);
               console.log(`  Current user: ${currentUser.uid}, Email: ${currentUser.email}`);
+
+              // Special case for "Official Editz" / "Kuldeep"
+              if (blog.author === 'Kuldeep' || blog.author_name === 'Kuldeep') {
+                console.log(`  This is Kuldeep's blog`);
+                return true;
+              }
 
               // Compare with multiple possible user identifiers
               const isMatch = (
@@ -138,26 +156,66 @@ const Dashboard = () => {
         // Get a fresh token
         const idToken = await currentUser.getIdToken(true);
 
-        // Fetch liked blogs
-        const response = await axios.get("/api/blogs/liked/", {
-          headers: { Authorization: `Bearer ${idToken}` }
-        });
+        console.log("Fetching liked blogs for user:", currentUser.uid);
 
-        console.log("Liked blogs:", response.data);
-        setLikedBlogs(response.data);
+        // Fetch liked blogs using our service
+        const likedBlogsData = await getLikedBlogs(idToken);
+
+        console.log("Liked blogs fetched:", likedBlogsData);
+
+        // Process blogs to replace "Official Editz" with "Kuldeep"
+        const processedBlogs = Array.isArray(likedBlogsData) ? likedBlogsData.map(blog => {
+          if (blog.author_name === 'Official Editz') {
+            blog.author_name = 'Kuldeep';
+          }
+          if (blog.author === 'Official Editz') {
+            blog.author = 'Kuldeep';
+          }
+
+          // Ensure is_liked is set to true for all blogs in the liked section
+          blog.is_liked = true;
+
+          return blog;
+        }) : [];
+
+        setLikedBlogs(processedBlogs);
 
         // Extract stats for each blog
         const stats = {};
-        response.data.forEach(blog => {
-          stats[blog._id] = {
-            views: blog.views || 0,
-            likes: blog.like_count || 0
-          };
-        });
-        setBlogStats(prevStats => ({ ...prevStats, ...stats }));
+        if (Array.isArray(likedBlogsData)) {
+          likedBlogsData.forEach(blog => {
+            stats[blog._id] = {
+              views: blog.views || 0,
+              likes: blog.like_count || 0
+            };
+          });
+          setBlogStats(prevStats => ({ ...prevStats, ...stats }));
+        }
+
+        // If we got an empty array but have liked blogs in localStorage, use those as fallback
+        if (Array.isArray(likedBlogsData) && likedBlogsData.length === 0) {
+          try {
+            const likedBlogsFromStorage = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
+            const likedBlogIds = Object.keys(likedBlogsFromStorage).filter(id => likedBlogsFromStorage[id]);
+
+            if (likedBlogIds.length > 0) {
+              console.log("Found liked blogs in localStorage:", likedBlogIds);
+              setLikedError("Using cached liked blogs. Some information may be outdated.");
+            }
+          } catch (storageErr) {
+            console.error("Error reading from localStorage:", storageErr);
+          }
+        }
       } catch (err) {
         console.error("Error fetching liked blogs:", err);
         setLikedError("Failed to load your liked blogs. Please try again.");
+
+        // Show more detailed error message
+        if (err.response) {
+          console.error("Response status:", err.response.status);
+          console.error("Response data:", err.response.data);
+          setLikedError(`Failed to load liked blogs: ${err.response.data?.detail || err.message}`);
+        }
       } finally {
         setLikedLoading(false);
       }
@@ -193,27 +251,16 @@ const Dashboard = () => {
       console.log("User ID:", currentUser.uid);
       console.log("User email:", currentUser.email);
 
-      // Log the request we're about to make
-      console.log(`Making DELETE request to /api/blogs/${deleteId}/`);
-      console.log("With authorization header:", `Bearer ${idToken.substring(0, 10)}...`);
+      // Add custom headers to help with authentication
+      const customHeaders = {
+        'X-User-ID': currentUser.uid,
+        'X-User-Email': currentUser.email,
+        'X-User-Display-Name': currentUser.displayName || '',
+        'X-Firebase-UID': currentUser.uid  // Add Firebase UID explicitly
+      };
 
-      // Try the delete operation - First with trailing slash
-      let response;
-      try {
-        response = await axios.delete(`/api/blogs/${deleteId}/`, {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        });
-      } catch (error) {
-        // If that fails, try without trailing slash as fallback
-        console.log("Delete with trailing slash failed, trying without slash");
-        response = await axios.delete(`/api/blogs/${deleteId}`, {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
-          },
-        });
-      }
+      // Use our blog service to delete the blog with custom headers
+      const response = await deleteBlog(deleteId, idToken, customHeaders);
 
       console.log("Delete successful:", response);
 
@@ -283,7 +330,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black pt-24 pb-12">
+    <div className="min-h-screen bg-white dark:bg-black pt-32 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -312,12 +359,12 @@ const Dashboard = () => {
 
         {/* Blog List */}
         <div className="bg-white dark:bg-black rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700">
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex space-x-4">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
+              <div className="flex flex-wrap gap-4 sm:space-x-4 w-full sm:w-auto">
                 <button
                   onClick={() => setActiveTab("myBlogs")}
-                  className={`text-lg font-medium pb-2 border-b-2 transition-colors ${
+                  className={`text-base sm:text-lg font-medium pb-2 border-b-2 transition-colors ${
                     activeTab === "myBlogs"
                       ? "text-gray-900 dark:text-white border-gray-900 dark:border-white"
                       : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300"
@@ -327,7 +374,7 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab("likedBlogs")}
-                  className={`text-lg font-medium pb-2 border-b-2 transition-colors ${
+                  className={`text-base sm:text-lg font-medium pb-2 border-b-2 transition-colors ${
                     activeTab === "likedBlogs"
                       ? "text-gray-900 dark:text-white border-gray-900 dark:border-white"
                       : "text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300"
@@ -375,12 +422,58 @@ const Dashboard = () => {
                     </Link>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto -mx-6">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500">
+                  <div className="overflow-x-auto -mx-4 sm:-mx-6">
+                    {/* Mobile view - card layout */}
+                    <div className="grid grid-cols-1 gap-4 mb-4 sm:hidden">
+                      {blogs.map(blog => (
+                        <div key={blog._id} className="bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</h3>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {blog.created_at
+                                ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
+                                : "Unknown"}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-4 mb-3 text-gray-600 dark:text-gray-300 text-sm">
+                            <div className="flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              {blog.views || 0}
+                            </div>
+                            <div className="flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              {blog.like_count || 0}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <Link to={`/blog/${blog._id}`} className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline text-sm">View</Link>
+                            <Link to={`/edit/${blog._id}`} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 rounded-sm text-xs hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                              Edit
+                            </Link>
+                            <button
+                              onClick={() => handleDeleteClick(blog._id)}
+                              className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline text-sm"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop view - table layout */}
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500 hidden sm:table">
                       <thead className="bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Title</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden sm:table-cell">Created</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Created</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden md:table-cell">Stats</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Actions</th>
                         </tr>
@@ -390,13 +483,8 @@ const Dashboard = () => {
                           <tr key={blog._id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900">
                             <td className="px-6 py-4">
                               <div className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</div>
-                              <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 sm:hidden">
-                                {blog.created_at
-                                  ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
-                                  : "Unknown"}
-                              </div>
                             </td>
-                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
                               {blog.created_at
                                 ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
                                 : "Unknown"}
@@ -462,12 +550,48 @@ const Dashboard = () => {
                     </Link>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto -mx-6">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500">
+                  <div className="overflow-x-auto -mx-4 sm:-mx-6">
+                    {/* Mobile view - card layout */}
+                    <div className="grid grid-cols-1 gap-4 mb-4 sm:hidden">
+                      {likedBlogs.map(blog => (
+                        <div key={blog._id} className="bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</h3>
+                          </div>
+
+                          <div className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                            By {blog.author_name || "Anonymous"}
+                          </div>
+
+                          <div className="flex items-center space-x-4 mb-3 text-gray-600 dark:text-gray-300 text-sm">
+                            <div className="flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              {blog.views || 0}
+                            </div>
+                            <div className="flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              </svg>
+                              {blog.like_count || 0}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <Link to={`/blog/${blog._id}`} className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline text-sm">View</Link>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop view - table layout */}
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-500 hidden sm:table">
                       <thead className="bg-gray-50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Title</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden sm:table-cell">Author</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Author</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider hidden md:table-cell">Stats</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">Actions</th>
                         </tr>
@@ -477,11 +601,8 @@ const Dashboard = () => {
                           <tr key={blog._id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900">
                             <td className="px-6 py-4">
                               <div className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</div>
-                              <div className="text-gray-600 dark:text-gray-400 text-sm mt-1 sm:hidden">
-                                By {blog.author_name || "Anonymous"}
-                              </div>
                             </td>
-                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
+                            <td className="px-6 py-4 text-gray-600 dark:text-gray-300">
                               {blog.author_name || "Anonymous"}
                             </td>
                             <td className="px-6 py-4 text-gray-600 dark:text-gray-300 hidden md:table-cell">

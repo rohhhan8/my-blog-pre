@@ -235,7 +235,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center items-center">
+      <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 flex justify-center items-center">
         <Spinner size="lg" />
       </div>
     );
@@ -245,7 +245,7 @@ const Profile = () => {
   // For profile-related warnings, we'll show them inline
   if (error && !profile) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center">
+      <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 flex justify-center">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 max-w-lg">
           <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
@@ -259,7 +259,7 @@ const Profile = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center">
+      <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 flex justify-center">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 max-w-lg">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Profile Not Found</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-6">The requested profile could not be found.</p>
@@ -272,7 +272,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 pb-12">
+    <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 pb-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Warning message for limited profile info */}

@@ -292,6 +292,26 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    def perform_update(self, serializer):
+        """
+        Custom perform_update to sync profile changes with the User model
+        """
+        logger.info(f"Performing update with data: {serializer.validated_data}")
+
+        # Get the display_name from the validated data
+        display_name = serializer.validated_data.get('display_name')
+
+        # Update the profile
+        profile = serializer.save()
+
+        # If display_name was updated, also update the User model's first_name
+        if display_name:
+            user = profile.user
+            logger.info(f"Updating User model first_name from '{user.first_name}' to '{display_name}'")
+            user.first_name = display_name
+            user.save()
+            logger.info(f"User model updated successfully")
+
     def partial_update(self, request, *args, **kwargs):
         """
         Partially update a user's profile

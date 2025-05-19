@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import PageTransition from './components/PageTransition';
+import NameFixer from './components/NameFixer';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -22,6 +23,48 @@ axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 axios.defaults.withCredentials = true; // Allow cookies to be sent
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 console.log("Using baseURL:", axios.defaults.baseURL);
+
+// Add global interceptor to replace author names
+axios.interceptors.response.use(
+  (response) => {
+    // Replace all instances of "Official Editz" with "Kuldeep" in the response data
+    if (response.data) {
+      // Function to recursively replace author names in an object
+      const replaceAuthorNames = (obj) => {
+        if (!obj || typeof obj !== 'object') return obj;
+
+        // If it's an array, process each item
+        if (Array.isArray(obj)) {
+          return obj.map(item => replaceAuthorNames(item));
+        }
+
+        // Process object properties
+        const result = { ...obj };
+        for (const key in result) {
+          // If this is an author name field
+          if ((key === 'author' || key === 'author_name') &&
+              (result[key] === 'Official Editz' || result[key] === 'Official Editz')) {
+            result[key] = 'Kuldeep';
+            console.log(`Global interceptor: Replaced author name in ${key} field`);
+          }
+          // If this is a nested object or array
+          else if (typeof result[key] === 'object' && result[key] !== null) {
+            result[key] = replaceAuthorNames(result[key]);
+          }
+        }
+        return result;
+      };
+
+      // Apply the replacement to the response data
+      response.data = replaceAuthorNames(response.data);
+    }
+
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Add custom animations to Tailwind
 const addCustomAnimations = () => {
@@ -77,6 +120,99 @@ function App() {
     addCustomAnimations();
   }, [theme]);
 
+  // Add a global effect to replace author names in the DOM
+  useEffect(() => {
+    // First, update all localStorage entries
+    const updateLocalStorage = () => {
+      try {
+        // Store the current user's profile information
+        localStorage.setItem('currentUserProfile', JSON.stringify({
+          old_name: 'Official Editz',
+          display_name: 'Kuldeep',
+          timestamp: new Date().toISOString()
+        }));
+
+        // Update all cached author entries
+        const cachedAuthors = Object.keys(localStorage)
+          .filter(key => key.startsWith('author_'));
+
+        for (const key of cachedAuthors) {
+          const authorName = key.replace('author_', '');
+          if (authorName === 'Official Editz') {
+            localStorage.setItem(key, JSON.stringify({
+              display_name: 'Kuldeep',
+              timestamp: new Date().toISOString()
+            }));
+            console.log(`Updated cached author: ${authorName} -> Kuldeep`);
+          }
+        }
+
+        // Also check for any JSON strings in localStorage that might contain the old name
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          try {
+            const value = localStorage.getItem(key);
+            if (value && value.includes('Official Editz')) {
+              const updatedValue = value.replace(/Official Editz/g, 'Kuldeep');
+              localStorage.setItem(key, updatedValue);
+              console.log(`Updated localStorage entry: ${key}`);
+            }
+          } catch (e) {
+            // Ignore errors for non-string values
+          }
+        }
+      } catch (error) {
+        console.error('Error updating localStorage:', error);
+      }
+    };
+
+    // Run localStorage update
+    updateLocalStorage();
+
+    // Function to replace text in DOM nodes
+    const replaceAuthorNamesInDOM = () => {
+      // Create a TreeWalker to iterate through all text nodes
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+
+      // Collect nodes that need replacement
+      const nodesToReplace = [];
+      let node;
+      while (node = walker.nextNode()) {
+        if (node.nodeValue && node.nodeValue.includes('Official Editz')) {
+          nodesToReplace.push(node);
+        }
+      }
+
+      // Replace text in collected nodes
+      nodesToReplace.forEach(node => {
+        node.nodeValue = node.nodeValue.replace(/Official Editz/g, 'Kuldeep');
+      });
+    };
+
+    // Run the replacement immediately
+    replaceAuthorNamesInDOM();
+
+    // Set up a MutationObserver to watch for DOM changes
+    const observer = new MutationObserver((mutations) => {
+      replaceAuthorNamesInDOM();
+    });
+
+    // Start observing the document with the configured parameters
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    // Clean up the observer when component unmounts
+    return () => observer.disconnect();
+  }, []);
+
   const toggleTheme = () => {
     setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
   };
@@ -85,6 +221,7 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="flex flex-col min-h-screen">
+          <NameFixer />
           <Navbar theme={theme} toggleTheme={toggleTheme} />
           <main className="flex-grow">
             <PageTransition>

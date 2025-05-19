@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentUserProfile, updateProfile, uploadProfileImage } from '../services/profileService';
+
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
 
 const EditProfile = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateUserProfile } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState({
@@ -194,12 +195,51 @@ const EditProfile = () => {
       console.log('Sending profile update with data:', updatedProfile);
 
       try {
-        // Update the profile
+        // Update the profile in our backend
         const result = await updateProfile(updatedProfile);
         console.log('Profile update result:', result);
 
         // Clear any pending profile update in localStorage
         localStorage.removeItem('pendingProfileUpdate');
+
+        // Store the current user's profile information in localStorage
+        // This will be used to update author names across the application
+        const oldName = currentUser.displayName || profile.display_name;
+        localStorage.setItem('currentUserProfile', JSON.stringify({
+          old_name: oldName,
+          display_name: updatedProfile.display_name,
+          timestamp: new Date().toISOString()
+        }));
+
+        // Also update all cached author entries that match the old name
+        try {
+          const cachedAuthors = Object.keys(localStorage)
+            .filter(key => key.startsWith('author_'));
+
+          for (const key of cachedAuthors) {
+            const authorName = key.replace('author_', '');
+            if (authorName === oldName) {
+              localStorage.setItem(key, JSON.stringify({
+                display_name: updatedProfile.display_name,
+                timestamp: new Date().toISOString()
+              }));
+              console.log(`Updated cached author: ${authorName} -> ${updatedProfile.display_name}`);
+            }
+          }
+        } catch (cacheError) {
+          console.error('Error updating cached authors:', cacheError);
+        }
+
+        // Also update the Firebase user's displayName to keep it in sync
+        if (updatedProfile.display_name && currentUser) {
+          try {
+            await updateUserProfile(updatedProfile.display_name, updatedProfile.avatar_url || null);
+            console.log('Firebase displayName updated to:', updatedProfile.display_name);
+          } catch (firebaseError) {
+            console.error('Error updating Firebase displayName:', firebaseError);
+            // Continue anyway, this is not critical
+          }
+        }
 
         setSuccess('Profile updated successfully!');
 

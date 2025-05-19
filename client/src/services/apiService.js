@@ -69,6 +69,39 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => {
     console.log('API response from:', response.config.url, 'Status:', response.status);
+
+    // Replace all instances of "Official Editz" with "Kuldeep" in the response data
+    if (response.data) {
+      // Function to recursively replace author names in an object
+      const replaceAuthorNames = (obj) => {
+        if (!obj || typeof obj !== 'object') return obj;
+
+        // If it's an array, process each item
+        if (Array.isArray(obj)) {
+          return obj.map(item => replaceAuthorNames(item));
+        }
+
+        // Process object properties
+        const result = { ...obj };
+        for (const key in result) {
+          // If this is an author name field
+          if ((key === 'author' || key === 'author_name') &&
+              (result[key] === 'Official Editz' || result[key] === 'Official Editz')) {
+            result[key] = 'Kuldeep';
+            console.log(`Replaced author name in ${key} field`);
+          }
+          // If this is a nested object or array
+          else if (typeof result[key] === 'object' && result[key] !== null) {
+            result[key] = replaceAuthorNames(result[key]);
+          }
+        }
+        return result;
+      };
+
+      // Apply the replacement to the response data
+      response.data = replaceAuthorNames(response.data);
+    }
+
     return response;
   },
   async (error) => {

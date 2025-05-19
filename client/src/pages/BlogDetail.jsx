@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { getUserProfile } from "../services/profileService";
 
 const BlogDetail = () => {
   const { id, _id, "*": splat } = useParams();  // Handle all route parameter formats
@@ -40,6 +41,8 @@ const BlogDetail = () => {
   const [viewCount, setViewCount] = useState(0);
   const [shareUrl, setShareUrl] = useState("");
   const [showShareToast, setShowShareToast] = useState(false);
+  const [authorProfile, setAuthorProfile] = useState(null);
+  const [authorName, setAuthorName] = useState("");
 
   // Set share URL when component mounts
   useEffect(() => {
@@ -50,6 +53,75 @@ const BlogDetail = () => {
     console.log("Setting share URL:", cleanShareUrl);
     setShareUrl(cleanShareUrl);
   }, [blogId]);
+
+  // Function to fetch author profile
+  const fetchAuthorProfile = async (authorName) => {
+    if (!authorName) return;
+
+    // First check if this is the current user's blog
+    try {
+      const currentUserProfile = localStorage.getItem('currentUserProfile');
+      if (currentUserProfile) {
+        const userData = JSON.parse(currentUserProfile);
+        if (userData.old_name === authorName && userData.display_name) {
+          setAuthorName(userData.display_name);
+          console.log(`Using current user's updated name: ${userData.display_name}`);
+          return; // Skip other checks if we've found a match
+        }
+      }
+    } catch (error) {
+      console.error("Error checking current user profile:", error);
+    }
+
+    // Then check if we have a cached name in localStorage
+    try {
+      const cachedAuthor = localStorage.getItem(`author_${authorName}`);
+      if (cachedAuthor) {
+        const authorData = JSON.parse(cachedAuthor);
+        if (authorData.display_name) {
+          setAuthorName(authorData.display_name);
+          console.log("Using cached author name:", authorData.display_name);
+        }
+      }
+    } catch (error) {
+      console.error("Error reading cached author data:", error);
+    }
+
+    // Then fetch the latest profile
+    try {
+      console.log("Fetching profile for author:", authorName);
+
+      // Force cache busting by adding a timestamp to the request
+      const timestamp = new Date().getTime();
+      const profile = await getUserProfile(`${authorName}?_=${timestamp}`);
+      console.log("Author profile:", profile);
+
+      if (profile) {
+        setAuthorProfile(profile);
+        // Use the display_name from the profile if available
+        if (profile.display_name) {
+          setAuthorName(profile.display_name);
+          console.log("Updated author name to:", profile.display_name);
+
+          // Update localStorage with the latest name to ensure consistency
+          localStorage.setItem(`author_${authorName}`, JSON.stringify({
+            display_name: profile.display_name,
+            timestamp: new Date().toISOString()
+          }));
+
+          // Also update the lastViewedAuthor for profile navigation
+          localStorage.setItem('lastViewedAuthor', JSON.stringify({
+            username: authorName,
+            display_name: profile.display_name,
+            timestamp: new Date().toISOString()
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching author profile:", error);
+      // If we can't fetch the profile, we'll use the author_name from the blog
+    }
+  };
 
   useEffect(() => {
     const fetchBlog = async () => {
@@ -88,6 +160,39 @@ const BlogDetail = () => {
           setViewCount(response.data.views);
         }
 
+        // Set initial author name from blog data
+        if (response.data.author_name) {
+          setAuthorName(response.data.author_name);
+        }
+
+        // Check if this is the current user's blog
+        const authorToCheck = response.data.author_name || response.data.author;
+        let isCurrentUserBlog = false;
+
+        try {
+          const currentUserProfile = localStorage.getItem('currentUserProfile');
+          if (currentUserProfile && authorToCheck) {
+            const userData = JSON.parse(currentUserProfile);
+            if (userData.old_name === authorToCheck && userData.display_name) {
+              setAuthorName(userData.display_name);
+              console.log(`Using current user's updated name: ${userData.display_name}`);
+              isCurrentUserBlog = true;
+            }
+          }
+        } catch (error) {
+          console.error("Error checking current user profile:", error);
+        }
+
+        // Only fetch the author's profile if it's not the current user
+        if (!isCurrentUserBlog) {
+          // Fetch the author's profile to get the most up-to-date name
+          if (response.data.author_name) {
+            await fetchAuthorProfile(response.data.author_name);
+          } else if (response.data.author) {
+            await fetchAuthorProfile(response.data.author);
+          }
+        }
+
         setError("");
 
         // Track view after fetching blog
@@ -123,6 +228,39 @@ const BlogDetail = () => {
 
             if (foundBlog.views !== undefined) {
               setViewCount(foundBlog.views);
+            }
+
+            // Set initial author name from blog data
+            if (foundBlog.author_name) {
+              setAuthorName(foundBlog.author_name);
+            }
+
+            // Check if this is the current user's blog
+            const authorToCheck = foundBlog.author_name || foundBlog.author;
+            let isCurrentUserBlog = false;
+
+            try {
+              const currentUserProfile = localStorage.getItem('currentUserProfile');
+              if (currentUserProfile && authorToCheck) {
+                const userData = JSON.parse(currentUserProfile);
+                if (userData.old_name === authorToCheck && userData.display_name) {
+                  setAuthorName(userData.display_name);
+                  console.log(`Using current user's updated name: ${userData.display_name}`);
+                  isCurrentUserBlog = true;
+                }
+              }
+            } catch (error) {
+              console.error("Error checking current user profile:", error);
+            }
+
+            // Only fetch the author's profile if it's not the current user
+            if (!isCurrentUserBlog) {
+              // Fetch the author's profile to get the most up-to-date name
+              if (foundBlog.author_name) {
+                await fetchAuthorProfile(foundBlog.author_name);
+              } else if (foundBlog.author) {
+                await fetchAuthorProfile(foundBlog.author);
+              }
             }
 
             setError("");
@@ -171,7 +309,7 @@ const BlogDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center items-center">
+      <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 flex justify-center items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-t-transparent border-gray-900 dark:border-white"></div>
       </div>
     );
@@ -179,7 +317,7 @@ const BlogDetail = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center">
+      <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 flex justify-center">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 max-w-lg">
           <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
@@ -306,7 +444,7 @@ const BlogDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black pt-20 sm:pt-24 pb-12 relative">
+    <div className="min-h-screen bg-white dark:bg-black pt-28 sm:pt-32 pb-12 relative">
       {/* Share toast notification */}
       {showShareToast && (
         <div className="fixed bottom-4 right-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in">
@@ -342,66 +480,70 @@ const BlogDetail = () => {
               <div className="flex items-center">
                 {/* Author avatar with link to profile */}
                 <Link
-                  to={`/profile/${encodeURIComponent(blog.author_name || blog.author || 'anonymous')}`}
+                  to={`/profile/${encodeURIComponent(authorName || blog.author_name || blog.author || 'anonymous')}`}
                   className="block"
                   onClick={(e) => {
                     // Log the author info for debugging
                     console.log('Author info:', {
                       author: blog.author,
                       author_name: blog.author_name,
+                      updated_name: authorName,
                       author_id: blog.author_id
                     });
 
                     // Prevent navigation if author is anonymous
-                    if ((blog.author_name || blog.author) === 'anonymous') {
+                    if ((authorName || blog.author_name || blog.author) === 'anonymous') {
                       e.preventDefault();
                       alert('This author does not have a profile');
                     }
 
                     // Store the author info in localStorage to help with profile lookup
-                    if (blog.author_name || blog.author) {
+                    const authorToStore = authorName || blog.author_name || blog.author;
+                    if (authorToStore) {
                       localStorage.setItem('lastViewedAuthor', JSON.stringify({
-                        username: blog.author_name || blog.author,
-                        display_name: blog.author_name || blog.author,
+                        username: authorToStore,
+                        display_name: authorToStore,
                         timestamp: new Date().toISOString()
                       }));
                     }
                   }}
                 >
                   <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 font-medium text-lg hover:shadow-md transition-shadow">
-                    {blog.author?.charAt(0)?.toUpperCase() || blog.author_name?.charAt(0)?.toUpperCase() || 'A'}
+                    {authorName?.charAt(0)?.toUpperCase() || blog.author_name?.charAt(0)?.toUpperCase() || blog.author?.charAt(0)?.toUpperCase() || 'A'}
                   </div>
                 </Link>
                 <div className="ml-3 sm:ml-4">
                   {/* Author name with link to profile */}
                   <Link
-                    to={`/profile/${encodeURIComponent(blog.author_name || blog.author || 'anonymous')}`}
+                    to={`/profile/${encodeURIComponent(authorName || blog.author_name || blog.author || 'anonymous')}`}
                     className="text-sm sm:text-base font-medium text-gray-900 dark:text-white hover:underline"
                     onClick={(e) => {
                       // Log the author info for debugging
                       console.log('Author info (from name link):', {
                         author: blog.author,
                         author_name: blog.author_name,
+                        updated_name: authorName,
                         author_id: blog.author_id
                       });
 
                       // Prevent navigation if author is anonymous
-                      if ((blog.author_name || blog.author) === 'anonymous') {
+                      if ((authorName || blog.author_name || blog.author) === 'anonymous') {
                         e.preventDefault();
                         alert('This author does not have a profile');
                       }
 
                       // Store the author info in localStorage to help with profile lookup
-                      if (blog.author_name || blog.author) {
+                      const authorToStore = authorName || blog.author_name || blog.author;
+                      if (authorToStore) {
                         localStorage.setItem('lastViewedAuthor', JSON.stringify({
-                          username: blog.author_name || blog.author,
-                          display_name: blog.author_name || blog.author,
+                          username: authorToStore,
+                          display_name: authorToStore,
                           timestamp: new Date().toISOString()
                         }));
                       }
                     }}
                   >
-                    {blog.author_name || blog.author || 'Anonymous'}
+                    {authorName || blog.author_name || blog.author || 'Anonymous'}
                   </Link>
                   <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-x-2 sm:space-x-4">
                     <span>{formattedDate}</span>

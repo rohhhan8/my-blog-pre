@@ -54,25 +54,35 @@ export const getCurrentUserProfile = async () => {
  */
 export const getUserProfile = async (usernameOrId) => {
   try {
+    // Extract the base username and any query parameters
+    let baseUsername = usernameOrId;
+    let queryParams = '';
+
+    if (usernameOrId.includes('?')) {
+      const parts = usernameOrId.split('?');
+      baseUsername = parts[0];
+      queryParams = `?${parts[1]}`;
+    }
+
     // Clean up the username - remove any special characters that might cause issues
-    const cleanUsername = usernameOrId.trim().replace(/[^\w\s]/g, '');
-    console.log(`Original username: "${usernameOrId}", Cleaned username: "${cleanUsername}"`);
+    const cleanUsername = baseUsername.trim().replace(/[^\w\s]/g, '');
+    console.log(`Original username: "${baseUsername}", Cleaned username: "${cleanUsername}", Query params: "${queryParams}"`);
 
     // Try multiple approaches to find the profile
     const approaches = [
       // 1. Try the public endpoint with the original username
       async () => {
-        console.log(`Approach 1: Trying public endpoint with original username: ${API_URL}${usernameOrId}/public/`);
-        const response = await api.get(`${API_URL}${usernameOrId}/public/`);
+        console.log(`Approach 1: Trying public endpoint with original username: ${API_URL}${baseUsername}/public/${queryParams}`);
+        const response = await api.get(`${API_URL}${baseUsername}/public/${queryParams}`);
         console.log('Approach 1 succeeded');
         return response.data;
       },
 
       // 2. Try the public endpoint with the cleaned username
       async () => {
-        if (cleanUsername !== usernameOrId) {
-          console.log(`Approach 2: Trying public endpoint with cleaned username: ${API_URL}${cleanUsername}/public/`);
-          const response = await api.get(`${API_URL}${cleanUsername}/public/`);
+        if (cleanUsername !== baseUsername) {
+          console.log(`Approach 2: Trying public endpoint with cleaned username: ${API_URL}${cleanUsername}/public/${queryParams}`);
+          const response = await api.get(`${API_URL}${cleanUsername}/public/${queryParams}`);
           console.log('Approach 2 succeeded');
           return response.data;
         }
@@ -81,9 +91,12 @@ export const getUserProfile = async (usernameOrId) => {
 
       // 3. Try searching by the original username
       async () => {
-        console.log(`Approach 3: Trying search by original username: ${API_URL}?username=${usernameOrId}`);
+        console.log(`Approach 3: Trying search by original username: ${API_URL}?username=${baseUsername}${queryParams ? '&' + queryParams.substring(1) : ''}`);
         const response = await api.get(`${API_URL}`, {
-          params: { username: usernameOrId }
+          params: {
+            username: baseUsername,
+            _: queryParams.includes('_=') ? queryParams.split('_=')[1] : new Date().getTime() // Add timestamp for cache busting
+          }
         });
 
         if (response.data && Array.isArray(response.data) && response.data.length > 0) {
@@ -98,10 +111,13 @@ export const getUserProfile = async (usernameOrId) => {
 
       // 4. Try searching by the cleaned username
       async () => {
-        if (cleanUsername !== usernameOrId) {
-          console.log(`Approach 4: Trying search by cleaned username: ${API_URL}?username=${cleanUsername}`);
+        if (cleanUsername !== baseUsername) {
+          console.log(`Approach 4: Trying search by cleaned username: ${API_URL}?username=${cleanUsername}${queryParams ? '&' + queryParams.substring(1) : ''}`);
           const response = await api.get(`${API_URL}`, {
-            params: { username: cleanUsername }
+            params: {
+              username: cleanUsername,
+              _: queryParams.includes('_=') ? queryParams.split('_=')[1] : new Date().getTime() // Add timestamp for cache busting
+            }
           });
 
           if (response.data && Array.isArray(response.data) && response.data.length > 0) {
@@ -115,12 +131,85 @@ export const getUserProfile = async (usernameOrId) => {
         throw new Error('No profiles found in search results or username already clean');
       },
 
-      // 5. Try to get user info from blogs
+      // 5. Try to get user info from blogs - using axios directly to avoid auth issues
       async () => {
-        console.log(`Approach 5: Trying to find user info from blogs by author name: ${usernameOrId}`);
-        // This would require a new endpoint to search blogs by author name
-        // For now, we'll just throw an error
-        throw new Error('Blog search not implemented yet');
+        console.log(`Approach 5: Trying to find user info from blogs by author name: ${baseUsername}`);
+        try {
+          // Use axios directly instead of the api service to avoid auth requirements
+          // This ensures it works even when there are token verification issues
+          const response = await axios.get('/api/blogs/', {
+            params: {
+              _: new Date().getTime() // Add timestamp for cache busting
+            }
+          });
+
+          if (response.data && Array.isArray(response.data)) {
+            // Filter blogs by this author
+            const authorBlogs = response.data.filter(blog =>
+              (blog.author_name && blog.author_name.includes(baseUsername)) ||
+              (blog.author && blog.author.includes(baseUsername))
+            );
+
+            if (authorBlogs.length > 0) {
+              // Get the most recent blog by this author
+              const latestBlog = authorBlogs.sort((a, b) =>
+                new Date(b.created_at) - new Date(a.created_at)
+              )[0];
+
+              console.log('Approach 5 succeeded - found author info from latest blog:', latestBlog);
+
+              // Create a profile from the blog author info
+              return {
+                username: baseUsername,
+                display_name: latestBlog.author_name || baseUsername,
+                bio: `Author of ${authorBlogs.length} blog(s)`,
+                blog_count: authorBlogs.length,
+                member_since: new Date(latestBlog.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+              };
+            }
+          }
+        } catch (error) {
+          console.error('Error in blog search approach:', error);
+        }
+
+        // Fallback to using localStorage if available
+        try {
+          const cachedAuthors = Object.keys(localStorage)
+            .filter(key => key.startsWith('author_'))
+            .map(key => {
+              try {
+                const data = JSON.parse(localStorage.getItem(key));
+                return {
+                  key: key.replace('author_', ''),
+                  display_name: data.display_name,
+                  timestamp: new Date(data.timestamp)
+                };
+              } catch (e) {
+                return null;
+              }
+            })
+            .filter(item => item !== null);
+
+          // Find any cached author that matches or includes our search term
+          const matchingAuthor = cachedAuthors.find(author =>
+            author.key.includes(baseUsername) ||
+            (author.display_name && author.display_name.includes(baseUsername))
+          );
+
+          if (matchingAuthor) {
+            console.log('Found matching author in localStorage:', matchingAuthor);
+            return {
+              username: baseUsername,
+              display_name: matchingAuthor.display_name,
+              bio: 'Profile information from cache',
+              member_since: matchingAuthor.timestamp.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+            };
+          }
+        } catch (cacheError) {
+          console.error('Error checking localStorage for author:', cacheError);
+        }
+
+        throw new Error('Blog search did not find any results');
       }
     ];
 

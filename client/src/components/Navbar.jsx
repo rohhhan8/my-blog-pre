@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getCurrentUserProfile } from '../services/profileService';
 import Button from './ui/Button';
 
 const Navbar = () => {
@@ -13,6 +14,33 @@ const Navbar = () => {
     localStorage.getItem('darkMode') === 'true' ||
     (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
   );
+  const [userProfile, setUserProfile] = useState(null);
+  const [displayName, setDisplayName] = useState('');
+
+  // Fetch user profile when currentUser changes
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (currentUser) {
+        try {
+          const profile = await getCurrentUserProfile();
+          setUserProfile(profile);
+
+          // Set display name from profile if available, otherwise use Firebase displayName
+          if (profile && profile.display_name) {
+            setDisplayName(profile.display_name);
+          } else {
+            setDisplayName(currentUser.displayName || currentUser.email.split('@')[0]);
+          }
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          // Fallback to Firebase displayName
+          setDisplayName(currentUser.displayName || currentUser.email.split('@')[0]);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [currentUser]);
 
   // Toggle mobile menu
   const toggleMenu = () => {
@@ -34,10 +62,37 @@ const Navbar = () => {
     }
   }, [darkMode]);
 
-  // Close mobile menu when route changes
+  // Close mobile menu and refresh profile when route changes
   useEffect(() => {
     setIsOpen(false);
-  }, [location.pathname]);
+
+    // Refresh profile when navigating back from profile edit page or when currentUser changes
+    if (currentUser) {
+      const fetchUserProfile = async () => {
+        try {
+          const profile = await getCurrentUserProfile();
+          setUserProfile(profile);
+
+          if (profile && profile.display_name) {
+            setDisplayName(profile.display_name);
+            console.log('Updated navbar display name to:', profile.display_name);
+          } else if (currentUser.displayName) {
+            // If no profile display_name but Firebase has one, use that
+            setDisplayName(currentUser.displayName);
+            console.log('Using Firebase displayName in navbar:', currentUser.displayName);
+          }
+        } catch (error) {
+          console.error('Error refreshing user profile in navbar:', error);
+          // If API call fails, fall back to Firebase displayName
+          if (currentUser.displayName) {
+            setDisplayName(currentUser.displayName);
+          }
+        }
+      };
+
+      fetchUserProfile();
+    }
+  }, [location.pathname, currentUser]);
 
   const handleLogout = async () => {
     try {
@@ -51,10 +106,10 @@ const Navbar = () => {
   return (
     <nav className="bg-transparent backdrop-blur-md fixed w-full z-50 transition-all duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-2xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">BlogHub</span>
+              <span className="text-3xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">BlogHub</span>
             </Link>
 
             {/* Install button - hidden by default, shown by the beforeinstallprompt event */}
@@ -67,10 +122,10 @@ const Navbar = () => {
           </div>
 
           {/* Desktop menu */}
-          <div className="hidden md:flex md:items-center md:space-x-6">
+          <div className="hidden md:flex md:items-center md:space-x-8">
             <Link
               to="/"
-              className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+              className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
                 location.pathname === '/'
                   ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -80,15 +135,15 @@ const Navbar = () => {
             </Link>
             <button
               onClick={toggleDarkMode}
-              className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
+              className="p-2.5 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
               aria-label="Toggle dark mode"
             >
               {darkMode ? (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               ) : (
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
@@ -98,7 +153,7 @@ const Navbar = () => {
               <>
                 <Link
                   to="/create"
-                  className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
                     location.pathname === '/create'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -108,7 +163,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/dashboard"
-                  className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
                     location.pathname === '/dashboard'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -117,28 +172,28 @@ const Navbar = () => {
                   My Dashboard
                 </Link>
                 <div className="relative group">
-                  <button className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200">
-                    <div className="h-8 w-8 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900">
-                      {currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U'}
+                  <button className="flex items-center space-x-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200">
+                    <div className="h-10 w-10 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-lg font-medium">
+                      {displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U'}
                     </div>
-                    <span>{currentUser.displayName || currentUser.email.split('@')[0]}</span>
+                    <span className="text-base">{displayName || currentUser.email.split('@')[0]}</span>
                   </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-black rounded-md shadow-lg dark:shadow-gray-700/30 border border-gray-100 dark:border-gray-700 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-black rounded-md shadow-lg dark:shadow-gray-700/30 border border-gray-100 dark:border-gray-700 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
                     <Link
                       to="/profile"
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
+                      className="block w-full text-left px-4 py-2.5 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
                     >
                       My Profile
                     </Link>
                     <Link
                       to="/dashboard"
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
+                      className="block w-full text-left px-4 py-2.5 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
                     >
                       Dashboard
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
+                      className="block w-full text-left px-4 py-2.5 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
                     >
                       Sign out
                     </button>
@@ -149,7 +204,7 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
-                  className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
                     location.pathname === '/login'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -159,7 +214,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/signup"
-                  className={`px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
                     location.pathname === '/signup'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -226,11 +281,11 @@ const Navbar = () => {
               <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3">
                   <div className="h-10 w-10 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900">
-                    {currentUser.displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U'}
+                    {displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U'}
                   </div>
                   <div>
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {currentUser.displayName || currentUser.email.split('@')[0]}
+                      {displayName || currentUser.email.split('@')[0]}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {currentUser.email}

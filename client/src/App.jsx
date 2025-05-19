@@ -90,14 +90,13 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
-                {/* Support multiple URL formats for blog posts */}
+                {/* Support multiple URL formats for blog posts - simplified and prioritized */}
                 <Route path="/blog/:id" element={<BlogDetail />} />
                 <Route path="/blogs/:id" element={<BlogDetail />} />
-                <Route path="/blog/:_id" element={<BlogDetail />} />
-                <Route path="/blogs/:_id" element={<BlogDetail />} />
-                {/* Add a catch-all route for shared links that might have additional parameters */}
-                <Route path="/blog/:id/*" element={<BlogDetail />} />
-                <Route path="/blogs/:id/*" element={<BlogDetail />} />
+
+                {/* Catch-all routes for any blog URL pattern */}
+                <Route path="/blog/*" element={<BlogDetail />} />
+                <Route path="/blogs/*" element={<BlogDetail />} />
 
                 <Route
                   path="/create"

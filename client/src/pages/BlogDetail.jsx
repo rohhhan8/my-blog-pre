@@ -1,12 +1,35 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
 const BlogDetail = () => {
-  const { id, _id } = useParams();  // Handle both route parameter formats
-  const blogId = id || _id;  // Use whichever parameter is available
+  const { id, _id, "*": splat } = useParams();  // Handle all route parameter formats
+  const location = useLocation();
+
+  // Extract blog ID from various possible sources
+  const extractBlogId = () => {
+    // First try the direct params
+    if (id) return id;
+    if (_id) return _id;
+
+    // If we have a splat parameter (from catch-all routes), try to extract ID
+    if (splat) {
+      const splatMatch = splat.match(/([a-zA-Z0-9]+)/);
+      if (splatMatch && splatMatch[1]) return splatMatch[1];
+    }
+
+    // Try to extract from the full path as a last resort
+    const pathMatch = location.pathname.match(/\/blog[s]?\/([a-zA-Z0-9]+)/);
+    if (pathMatch && pathMatch[1]) return pathMatch[1];
+
+    return null;
+  };
+
+  const blogId = extractBlogId();
+  console.log("Extracted blog ID:", blogId, "from params:", { id, _id, splat, pathname: location.pathname });
+
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
@@ -126,13 +149,25 @@ const BlogDetail = () => {
       }
     };
 
+    // Clear any redirect attempt flags when loading a blog directly
+    sessionStorage.removeItem('redirectAttempt');
+
     if (blogId) {
+      console.log("Fetching blog with ID:", blogId);
       fetchBlog();
+
+      // If we're not on the canonical URL format, redirect to it
+      const canonicalPath = `/blog/${blogId}`;
+      if (location.pathname !== canonicalPath) {
+        console.log("Redirecting to canonical URL:", canonicalPath);
+        navigate(canonicalPath, { replace: true });
+      }
     } else {
+      console.error("Invalid blog ID");
       setError("Invalid blog ID");
       setLoading(false);
     }
-  }, [blogId]);
+  }, [blogId, location.pathname, navigate]);
 
   if (loading) {
     return (

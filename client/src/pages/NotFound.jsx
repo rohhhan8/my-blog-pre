@@ -16,9 +16,20 @@ const NotFound = () => {
     // Check if this is a shared blog link
     const blogIdMatch = path.match(/\/blog[s]?\/([a-zA-Z0-9]+)/);
 
-    if (blogIdMatch && blogIdMatch[1]) {
+    // Check if we're already in a redirection process (to prevent loops)
+    const isRedirectLoop = sessionStorage.getItem('redirectAttempt');
+
+    if (blogIdMatch && blogIdMatch[1] && !isRedirectLoop) {
       const blogId = blogIdMatch[1];
       console.log("Found blog ID in URL:", blogId);
+
+      // Set a flag in session storage to prevent redirect loops
+      sessionStorage.setItem('redirectAttempt', 'true');
+
+      // Clean the URL to ensure it's in the correct format
+      const cleanUrl = `/blog/${blogId}`;
+      console.log("Will redirect to:", cleanUrl);
+
       setRedirecting(true);
 
       // Start countdown
@@ -27,7 +38,7 @@ const NotFound = () => {
           if (prev <= 1) {
             clearInterval(timer);
             // Redirect to the blog page with the clean URL
-            navigate(`/blog/${blogId}`, { replace: true });
+            window.location.href = cleanUrl; // Use direct location change instead of navigate
             return 0;
           }
           return prev - 1;
@@ -35,8 +46,12 @@ const NotFound = () => {
       }, 1000);
 
       return () => clearInterval(timer);
+    } else if (isRedirectLoop) {
+      // If we're in a redirect loop, clear the flag and show normal 404
+      console.log("Detected redirect loop, showing normal 404");
+      sessionStorage.removeItem('redirectAttempt');
     }
-  }, [location, navigate]);
+  }, [location]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-blog-bg dark:bg-black px-4 transition-colors duration-200">

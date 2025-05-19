@@ -93,14 +93,44 @@
       return match && match[1] ? match[1] : null;
     }
 
+    // Check if we're in a redirect loop
+    function isInRedirectLoop() {
+      return sessionStorage.getItem('redirectAttempt') === 'true';
+    }
+
+    // Set redirect attempt flag
+    function setRedirectAttempt() {
+      sessionStorage.setItem('redirectAttempt', 'true');
+    }
+
+    // Clear redirect attempt flag
+    function clearRedirectAttempt() {
+      sessionStorage.removeItem('redirectAttempt');
+    }
+
     // Redirect to the correct URL
     function redirectToBlog() {
       const blogId = getBlogIdFromUrl();
-      if (blogId) {
+      if (blogId && !isInRedirectLoop()) {
+        setRedirectAttempt();
+        // Use the absolute path with origin to ensure we're going to the right place
         const cleanUrl = `${window.location.origin}/blog/${blogId}`;
-        window.location.href = cleanUrl;
+        console.log("Redirecting to:", cleanUrl);
+
+        // Use replace instead of href to avoid adding to browser history
+        window.location.replace(cleanUrl);
+      } else if (isInRedirectLoop()) {
+        // If we're in a redirect loop, go to home page and clear the flag
+        clearRedirectAttempt();
+        document.getElementById('message').textContent = 'Redirect loop detected. Please try again from the home page.';
+        document.getElementById('countdown').textContent = 'Redirecting to home page...';
+
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 3000);
       } else {
-        window.location.href = '/';
+        // No blog ID found, go to home
+        window.location.replace('/');
       }
     }
 
@@ -108,34 +138,45 @@
     function setupRedirect() {
       const blogId = getBlogIdFromUrl();
       let countdown = 5;
-      
-      if (blogId) {
+
+      if (blogId && !isInRedirectLoop()) {
         // Update blog link
         const blogLink = document.getElementById('blog-link');
         blogLink.href = `/blog/${blogId}`;
-        
+
         // Start countdown
         const countdownEl = document.getElementById('countdown');
         const progressBar = document.getElementById('progress-bar');
-        
+
         const timer = setInterval(() => {
           countdown--;
           countdownEl.textContent = `Redirecting in ${countdown} seconds`;
           progressBar.style.width = `${(countdown / 5) * 100}%`;
-          
+
           if (countdown <= 0) {
             clearInterval(timer);
             redirectToBlog();
           }
         }, 1000);
+      } else if (isInRedirectLoop()) {
+        // If we're in a redirect loop, show different message
+        document.getElementById('message').textContent = 'Redirect loop detected. Please try again from the home page.';
+        document.getElementById('countdown').textContent = 'Redirecting to home page...';
+        document.getElementById('blog-link').style.display = 'none';
+
+        // Clear the flag and redirect to home
+        clearRedirectAttempt();
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 3000);
       } else {
         // No blog ID found, show different message
         document.getElementById('message').textContent = 'Page not found. Redirecting to home page...';
         document.getElementById('blog-link').style.display = 'none';
-        
+
         // Redirect to home after 5 seconds
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.replace('/');
         }, 5000);
       }
     }

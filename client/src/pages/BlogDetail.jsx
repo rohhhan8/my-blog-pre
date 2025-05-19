@@ -166,17 +166,29 @@ const BlogDetail = () => {
     }
 
     try {
+      console.log("Liking blog with ID:", blogId);
       const idToken = await currentUser.getIdToken();
+
       const response = await axios.post(
         `/api/blogs/${blogId}/like/`,
         {},
         { headers: { Authorization: `Bearer ${idToken}` } }
       );
 
-      setIsLiked(response.data.status === 'liked');
-      setLikeCount(response.data.like_count);
+      console.log("Like response:", response.data);
+
+      if (response.data.status === 'liked') {
+        setIsLiked(true);
+        setLikeCount(prev => response.data.like_count);
+        console.log("Blog liked successfully");
+      } else if (response.data.status === 'unliked') {
+        setIsLiked(false);
+        setLikeCount(prev => response.data.like_count);
+        console.log("Blog unliked successfully");
+      }
     } catch (err) {
       console.error("Error liking post:", err);
+      console.error("Error details:", err.response?.data || err.message);
     }
   };
 

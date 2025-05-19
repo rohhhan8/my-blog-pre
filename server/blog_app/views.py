@@ -32,25 +32,73 @@ class BlogViewSet(viewsets.ModelViewSet):
         """
         Like or unlike a blog post
         """
-        blog = self.get_object()
-        user = request.user
+        try:
+            print(f"Processing like action for blog ID: {pk}")
+            print(f"User: {request.user}, ID: {request.user.id}")
 
-        if blog.likes.filter(id=user.id).exists():
-            blog.likes.remove(user)
-            return Response({'status': 'unliked', 'like_count': blog.likes.count()})
-        else:
-            blog.likes.add(user)
-            return Response({'status': 'liked', 'like_count': blog.likes.count()})
+            blog = self.get_object()
+            user = request.user
+
+            print(f"Found blog: {blog.title}")
+
+            # Check if user already liked this blog
+            if blog.likes.filter(id=user.id).exists():
+                print(f"User {user.id} unliking blog {blog._id}")
+                blog.likes.remove(user)
+                like_count = blog.likes.count()
+                print(f"New like count: {like_count}")
+                return Response({
+                    'status': 'unliked',
+                    'like_count': like_count,
+                    'message': 'Blog unliked successfully'
+                })
+            else:
+                print(f"User {user.id} liking blog {blog._id}")
+                blog.likes.add(user)
+                like_count = blog.likes.count()
+                print(f"New like count: {like_count}")
+                return Response({
+                    'status': 'liked',
+                    'like_count': like_count,
+                    'message': 'Blog liked successfully'
+                })
+        except Exception as e:
+            print(f"Error in like action: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'status': 'error',
+                'message': f'Error processing like: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny])
     def view(self, request, pk=None):
         """
         Track a view for a blog post
         """
-        blog = self.get_object()
-        blog.views += 1
-        blog.save()
-        return Response({'views': blog.views})
+        try:
+            print(f"Processing view action for blog ID: {pk}")
+
+            blog = self.get_object()
+            print(f"Found blog: {blog.title}, Current views: {blog.views}")
+
+            # Increment view count
+            blog.views += 1
+            blog.save()
+
+            print(f"Updated view count: {blog.views}")
+            return Response({
+                'views': blog.views,
+                'message': 'View count updated successfully'
+            })
+        except Exception as e:
+            print(f"Error in view action: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'status': 'error',
+                'message': f'Error tracking view: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def liked(self, request):

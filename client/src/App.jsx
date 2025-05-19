@@ -90,7 +90,12 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                {/* Support multiple URL formats for blog posts */}
+                <Route path="/blog/:id" element={<BlogDetail />} />
+                <Route path="/blogs/:id" element={<BlogDetail />} />
                 <Route path="/blog/:_id" element={<BlogDetail />} />
+                <Route path="/blogs/:_id" element={<BlogDetail />} />
+
                 <Route
                   path="/create"
                   element={
@@ -115,7 +120,6 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route path="/blogs/:_id" element={<BlogDetail />}/>
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PageTransition>

@@ -56,6 +56,14 @@ const Navbar = () => {
             <Link to="/" className="flex-shrink-0 flex items-center">
               <span className="text-2xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">BlogHub</span>
             </Link>
+
+            {/* Install button - hidden by default, shown by the beforeinstallprompt event */}
+            <button
+              id="install-button"
+              className="hidden ml-4 px-3 py-1 text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-md"
+            >
+              Install App
+            </button>
           </div>
 
           {/* Desktop menu */}
@@ -194,14 +202,14 @@ const Navbar = () => {
 
       {/* Mobile menu */}
       <div className={`md:hidden ${isOpen ? 'block' : 'hidden'}`}>
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md shadow-lg rounded-b-lg">
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white/90 dark:bg-black/90 backdrop-blur-md shadow-lg rounded-b-lg">
           {/* Home link - always visible */}
           <Link
             to="/"
             className={`block px-3 py-2 rounded-md text-base font-medium ${
               location.pathname === '/'
-                ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-900'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900'
             } transition-colors duration-200`}
           >
             Home
@@ -226,19 +234,19 @@ const Navbar = () => {
               </div>
               <Link
                 to="/create"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
               >
                 Create Post
               </Link>
               <Link
                 to="/dashboard"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
               >
                 My Dashboard
               </Link>
               <button
                 onClick={handleLogout}
-                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
               >
                 Sign out
               </button>
@@ -247,13 +255,13 @@ const Navbar = () => {
             <>
               <Link
                 to="/login"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
               >
                 Sign in
               </Link>
               <Link
                 to="/signup"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
               >
                 Sign up
               </Link>

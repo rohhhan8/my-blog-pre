@@ -17,6 +17,27 @@ export default {
       animation: {
         'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
         'fade-in': 'fadeIn 0.8s ease-out forwards',
+        'float': 'float 3s ease-in-out infinite',
+        'loading-bar': 'loadingBar 2s ease-in-out infinite',
+      },
+      keyframes: {
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        loadingBar: {
+          '0%': { width: '0%', left: '0%' },
+          '50%': { width: '70%', left: '30%' },
+          '100%': { width: '0%', left: '100%' },
+        },
       },
       fontFamily: {
         'playfair': ['"Playfair Display"', 'serif'],

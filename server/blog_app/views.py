@@ -333,6 +333,13 @@ class BlogViewSet(viewsets.ModelViewSet):
             blog_id = kwargs.get('pk')
             print(f"Attempting to delete blog with ID: {blog_id}")
 
+            # Check if we have a valid authentication token
+            auth_header = request.META.get('HTTP_AUTHORIZATION') or (hasattr(request, 'headers') and request.headers.get('Authorization'))
+            if not auth_header:
+                print("WARNING: No authorization header found in request")
+            else:
+                print(f"Authorization header present: {auth_header[:20]}...")
+
             # Use our custom get_object method to find the blog
             instance = self.get_object()
 
@@ -360,6 +367,27 @@ class BlogViewSet(viewsets.ModelViewSet):
                 print(f"Blog author username: {instance.author.username}")
             if hasattr(instance.author, 'email'):
                 print(f"Blog author email: {instance.author.email}")
+
+            # Check for Firebase auth token in request
+            if auth_header and auth_header.startswith('Bearer '):
+                # Extract token and try to get uid
+                token = auth_header.split('Bearer ')[1]
+                print(f"Extracted token: {token[:20]}...")
+
+                # Try to manually extract uid from token for debugging
+                try:
+                    import jwt
+                    decoded = jwt.decode(token, options={"verify_signature": False})
+                    token_uid = decoded.get('uid') or decoded.get('user_id') or decoded.get('sub')
+                    print(f"Token contains uid: {token_uid}")
+
+                    # If we have a uid from token and it matches the author's username (which is the uid in Firebase auth)
+                    if token_uid and hasattr(instance.author, 'username') and token_uid == instance.author.username:
+                        print(f"DIRECT TOKEN MATCH: Token uid {token_uid} matches author username {instance.author.username}")
+                        instance.delete()
+                        return Response(status=status.HTTP_204_NO_CONTENT)
+                except Exception as jwt_error:
+                    print(f"Error decoding token: {str(jwt_error)}")
 
             # Simplified permission check - just check username match
             if hasattr(request.user, 'username') and hasattr(instance.author, 'username'):
@@ -389,6 +417,15 @@ class BlogViewSet(viewsets.ModelViewSet):
                 return response
             else:
                 print("Direct comparison failed")
+
+            # 3. Special case for Firebase auth - check if email matches
+            if hasattr(request.user, 'email') and hasattr(instance.author, 'email') and request.user.email and instance.author.email:
+                if request.user.email == instance.author.email:
+                    print(f"Permission granted: Email match {request.user.email}")
+                    instance.delete()
+                    return Response(status=status.HTTP_204_NO_CONTENT)
+                else:
+                    print(f"Email mismatch: {instance.author.email} != {request.user.email}")
 
             # If we get here, all permission checks failed
             print("PERMISSION DENIED: User is not the author of this blog")

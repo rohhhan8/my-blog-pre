@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
-import { deleteBlog, getLikedBlogs } from "../services/blogService";
+import { deleteBlog, getLikedBlogs, getAllBlogs } from "../services/blogService";
+import apiClient from "../services/apiClient";
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
@@ -32,17 +33,55 @@ const Dashboard = () => {
       setError("");
 
       try {
+        // Check if we have cached user blogs in sessionStorage
+        const cachedUserBlogs = sessionStorage.getItem('cachedUserBlogs');
+        const cacheTimestamp = sessionStorage.getItem('userBlogsCacheTimestamp');
+        const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+        const cacheValid = cacheAge < 2 * 60 * 1000; // 2 minutes cache validity
+
+        // If we have valid cached user blogs, use them immediately
+        if (cachedUserBlogs && cacheValid) {
+          try {
+            const parsedUserBlogs = JSON.parse(cachedUserBlogs);
+            if (Array.isArray(parsedUserBlogs)) {
+              console.log("Using cached user blogs from sessionStorage");
+
+              // Process blogs to replace "Official Editz" with "Kuldeep"
+              const processedBlogs = parsedUserBlogs.map(blog => {
+                if (blog.author_name === 'Official Editz') {
+                  blog.author_name = 'Kuldeep';
+                }
+                if (blog.author === 'Official Editz') {
+                  blog.author = 'Kuldeep';
+                }
+                return blog;
+              });
+
+              setBlogs(processedBlogs);
+
+              // Set loading to false immediately
+              setLoading(false);
+
+              // Refresh in the background
+              refreshUserBlogsInBackground();
+              return;
+            }
+          } catch (cacheError) {
+            console.error("Error parsing cached user blogs:", cacheError);
+          }
+        }
+
         // Simple approach: Just fetch all blogs without authentication
         // This is a fallback approach that should work regardless of auth issues
         try {
           console.log("Fetching all blogs without authentication");
-          const response = await axios.get("/api/blogs/");
+          const response = await getAllBlogs();
 
-          if (Array.isArray(response.data) && response.data.length > 0) {
-            console.log("All blogs fetched:", response.data);
+          if (Array.isArray(response) && response.length > 0) {
+            console.log("All blogs fetched:", response);
 
             // Process blogs to replace "Official Editz" with "Kuldeep"
-            const processedBlogs = response.data.map(blog => {
+            const processedBlogs = response.map(blog => {
               if (blog.author_name === 'Official Editz') {
                 blog.author_name = 'Kuldeep';
               }
@@ -91,6 +130,15 @@ const Dashboard = () => {
 
             console.log("Filtered user blogs:", userBlogs);
             setBlogs(userBlogs);
+
+            // Cache the user blogs in sessionStorage
+            try {
+              sessionStorage.setItem('cachedUserBlogs', JSON.stringify(userBlogs));
+              sessionStorage.setItem('userBlogsCacheTimestamp', Date.now().toString());
+            } catch (storageError) {
+              console.error("Error caching user blogs:", storageError);
+            }
+
             return;
           }
         } catch (error) {
@@ -105,12 +153,53 @@ const Dashboard = () => {
 
         console.log("Fetching blogs for user:", currentUser.uid);
 
+        // Set auth token in apiClient
+        apiClient.setAuthToken(idToken);
+
         // Try to fetch all blogs with authentication
+        try {
+          const authResponse = await apiClient.get("/blogs/");
+          console.log("Blogs fetched with apiClient:", authResponse.data);
+
+          if (Array.isArray(authResponse.data)) {
+            // Filter blogs by the current user
+            const userBlogs = authResponse.data.filter(blog => {
+              // Extract author identifier
+              let authorId = typeof blog.author === "object"
+                ? (blog.author.id || blog.author._id || blog.author.username)
+                : blog.author;
+
+              // Compare with user identifiers
+              return (
+                authorId === currentUser.uid ||
+                authorId === currentUser.email ||
+                blog.author_id === currentUser.uid
+              );
+            });
+
+            console.log("Final user blogs from apiClient:", userBlogs);
+            setBlogs(userBlogs);
+
+            // Cache the user blogs in sessionStorage
+            try {
+              sessionStorage.setItem('cachedUserBlogs', JSON.stringify(userBlogs));
+              sessionStorage.setItem('userBlogsCacheTimestamp', Date.now().toString());
+            } catch (storageError) {
+              console.error("Error caching user blogs:", storageError);
+            }
+
+            return;
+          }
+        } catch (apiClientError) {
+          console.error("Error fetching blogs with apiClient:", apiClientError);
+        }
+
+        // Fallback to direct axios call
         const authResponse = await axios.get("/api/blogs/", {
           headers: { Authorization: `Bearer ${idToken}` }
         });
 
-        console.log("Blogs fetched with auth:", authResponse.data);
+        console.log("Blogs fetched with direct axios:", authResponse.data);
 
         if (Array.isArray(authResponse.data)) {
           // Filter blogs by the current user
@@ -128,14 +217,89 @@ const Dashboard = () => {
             );
           });
 
-          console.log("Final user blogs:", userBlogs);
+          console.log("Final user blogs from direct axios:", userBlogs);
           setBlogs(userBlogs);
+
+          // Cache the user blogs in sessionStorage
+          try {
+            sessionStorage.setItem('cachedUserBlogs', JSON.stringify(userBlogs));
+            sessionStorage.setItem('userBlogsCacheTimestamp', Date.now().toString());
+          } catch (storageError) {
+            console.error("Error caching user blogs:", storageError);
+          }
         }
       } catch (err) {
         console.error("Fetch error:", err);
         setError("Failed to load your blogs. Please try again.");
       } finally {
         setLoading(false);
+      }
+    };
+
+    // Function to refresh user blogs in the background
+    const refreshUserBlogsInBackground = async () => {
+      try {
+        console.log("Refreshing user blogs in background");
+
+        // Get a fresh token
+        const idToken = await currentUser.getIdToken(true);
+
+        // Set auth token in apiClient
+        apiClient.setAuthToken(idToken);
+
+        // Try to fetch all blogs
+        const response = await getAllBlogs();
+
+        if (Array.isArray(response) && response.length > 0) {
+          // Process blogs to replace "Official Editz" with "Kuldeep"
+          const processedBlogs = response.map(blog => {
+            if (blog.author_name === 'Official Editz') {
+              blog.author_name = 'Kuldeep';
+            }
+            if (blog.author === 'Official Editz') {
+              blog.author = 'Kuldeep';
+            }
+            return blog;
+          });
+
+          // Filter blogs by the current user
+          const userBlogs = processedBlogs.filter(blog => {
+            // Extract author identifier based on different possible formats
+            let authorId;
+            if (typeof blog.author === "object") {
+              authorId = blog.author.id || blog.author._id || blog.author.username;
+            } else {
+              authorId = blog.author;
+            }
+
+            // Special case for "Official Editz" / "Kuldeep"
+            if (blog.author === 'Kuldeep' || blog.author_name === 'Kuldeep') {
+              return true;
+            }
+
+            // Compare with multiple possible user identifiers
+            return (
+              authorId === currentUser.uid ||
+              authorId === currentUser.email ||
+              (blog.author_id && blog.author_id.toString() === currentUser.uid) ||
+              (blog.author_name && currentUser.displayName &&
+                blog.author_name.includes(currentUser.displayName))
+            );
+          });
+
+          console.log("Updated user blogs in background:", userBlogs);
+          setBlogs(userBlogs);
+
+          // Update cache
+          try {
+            sessionStorage.setItem('cachedUserBlogs', JSON.stringify(userBlogs));
+            sessionStorage.setItem('userBlogsCacheTimestamp', Date.now().toString());
+          } catch (storageError) {
+            console.error("Error updating cached user blogs:", storageError);
+          }
+        }
+      } catch (err) {
+        console.error("Error refreshing user blogs in background:", err);
       }
     };
 
@@ -153,6 +317,56 @@ const Dashboard = () => {
       setLikedError("");
 
       try {
+        // Check if we have cached liked blogs in sessionStorage
+        const cachedLikedBlogs = sessionStorage.getItem('cachedLikedBlogs');
+        const cacheTimestamp = sessionStorage.getItem('likedBlogsCacheTimestamp');
+        const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+        const cacheValid = cacheAge < 2 * 60 * 1000; // 2 minutes cache validity
+
+        // If we have valid cached liked blogs, use them immediately
+        if (cachedLikedBlogs && cacheValid) {
+          try {
+            const parsedLikedBlogs = JSON.parse(cachedLikedBlogs);
+            if (Array.isArray(parsedLikedBlogs)) {
+              console.log("Using cached liked blogs from sessionStorage");
+
+              // Process blogs to replace "Official Editz" with "Kuldeep"
+              const processedBlogs = parsedLikedBlogs.map(blog => {
+                if (blog.author_name === 'Official Editz') {
+                  blog.author_name = 'Kuldeep';
+                }
+                if (blog.author === 'Official Editz') {
+                  blog.author = 'Kuldeep';
+                }
+                // Ensure is_liked is set to true for all blogs in the liked section
+                blog.is_liked = true;
+                return blog;
+              });
+
+              setLikedBlogs(processedBlogs);
+
+              // Extract stats for each blog
+              const stats = {};
+              processedBlogs.forEach(blog => {
+                stats[blog._id] = {
+                  views: blog.views || 0,
+                  likes: blog.like_count || 0
+                };
+              });
+              setBlogStats(prevStats => ({ ...prevStats, ...stats }));
+
+              // Set loading to false immediately
+              setLikedLoading(false);
+
+              // Refresh in the background
+              refreshLikedBlogsInBackground();
+              return;
+            }
+          } catch (cacheError) {
+            console.error("Error parsing cached liked blogs:", cacheError);
+          }
+        }
+
         // Get a fresh token
         const idToken = await currentUser.getIdToken(true);
 
@@ -171,10 +385,20 @@ const Dashboard = () => {
           if (blog.author === 'Official Editz') {
             blog.author = 'Kuldeep';
           }
+          // Ensure is_liked is set to true for all blogs in the liked section
+          blog.is_liked = true;
           return blog;
         }) : [];
 
         setLikedBlogs(processedBlogs);
+
+        // Cache the liked blogs in sessionStorage
+        try {
+          sessionStorage.setItem('cachedLikedBlogs', JSON.stringify(processedBlogs));
+          sessionStorage.setItem('likedBlogsCacheTimestamp', Date.now().toString());
+        } catch (storageError) {
+          console.error("Error caching liked blogs:", storageError);
+        }
 
         // Extract stats for each blog
         const stats = {};
@@ -191,6 +415,20 @@ const Dashboard = () => {
         console.error("Error fetching liked blogs:", err);
         setLikedError("Failed to load your liked blogs. Please try again.");
 
+        // Try to get liked blogs from localStorage as fallback
+        try {
+          console.log("Trying to get liked blogs from localStorage");
+          const likedBlogsMap = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
+          const likedBlogIds = Object.keys(likedBlogsMap).filter(id => likedBlogsMap[id]);
+
+          if (likedBlogIds.length > 0) {
+            console.log("Found liked blog IDs in localStorage:", likedBlogIds);
+            setLikedError("Using cached liked blogs. Some information may be outdated.");
+          }
+        } catch (storageErr) {
+          console.error("Error reading from localStorage:", storageErr);
+        }
+
         // Show more detailed error message
         if (err.response) {
           console.error("Response status:", err.response.status);
@@ -199,6 +437,54 @@ const Dashboard = () => {
         }
       } finally {
         setLikedLoading(false);
+      }
+    };
+
+    // Function to refresh liked blogs in the background
+    const refreshLikedBlogsInBackground = async () => {
+      try {
+        // Get a fresh token
+        const idToken = await currentUser.getIdToken(true);
+
+        console.log("Refreshing liked blogs in background");
+        const likedBlogsData = await getLikedBlogs(idToken);
+
+        if (Array.isArray(likedBlogsData)) {
+          // Process blogs to replace "Official Editz" with "Kuldeep"
+          const processedBlogs = likedBlogsData.map(blog => {
+            if (blog.author_name === 'Official Editz') {
+              blog.author_name = 'Kuldeep';
+            }
+            if (blog.author === 'Official Editz') {
+              blog.author = 'Kuldeep';
+            }
+            // Ensure is_liked is set to true for all blogs in the liked section
+            blog.is_liked = true;
+            return blog;
+          });
+
+          setLikedBlogs(processedBlogs);
+
+          // Update cache
+          try {
+            sessionStorage.setItem('cachedLikedBlogs', JSON.stringify(processedBlogs));
+            sessionStorage.setItem('likedBlogsCacheTimestamp', Date.now().toString());
+          } catch (storageError) {
+            console.error("Error updating cached liked blogs:", storageError);
+          }
+
+          // Extract stats for each blog
+          const stats = {};
+          likedBlogsData.forEach(blog => {
+            stats[blog._id] = {
+              views: blog.views || 0,
+              likes: blog.like_count || 0
+            };
+          });
+          setBlogStats(prevStats => ({ ...prevStats, ...stats }));
+        }
+      } catch (err) {
+        console.error("Error refreshing liked blogs in background:", err);
       }
     };
 
@@ -219,6 +505,16 @@ const Dashboard = () => {
       const blogToDelete = blogs.find(blog => blog._id === deleteId);
       console.log("Attempting to delete blog:", blogToDelete);
 
+      // Optimistically remove the blog from the UI
+      setBlogs(prev => prev.filter(blog => blog._id !== deleteId));
+
+      // Store the blog in localStorage in case we need to restore it
+      try {
+        localStorage.setItem(`deletedBlog_${deleteId}`, JSON.stringify(blogToDelete));
+      } catch (storageErr) {
+        console.error("Error storing blog in localStorage:", storageErr);
+      }
+
       // Force token refresh to get a fresh token
       await currentUser.getIdToken(true);
 
@@ -228,45 +524,195 @@ const Dashboard = () => {
       // Get a fresh token after forcing refresh
       const idToken = await currentUser.getIdToken();
       console.log("Using fresh token for delete");
-      console.log("Current user:", currentUser);
-      console.log("User ID:", currentUser.uid);
-      console.log("User email:", currentUser.email);
+
+      // Store token in localStorage
+      localStorage.setItem('authToken', idToken);
+
+      // Store user info in localStorage
+      localStorage.setItem('userInfo', JSON.stringify({
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName || ''
+      }));
+
+      // Set the token in apiClient
+      apiClient.setAuthToken(idToken, {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName || ''
+      });
 
       // Add custom headers to help with authentication
       const customHeaders = {
         'X-User-ID': currentUser.uid,
         'X-User-Email': currentUser.email,
         'X-User-Display-Name': currentUser.displayName || '',
-        'X-Firebase-UID': currentUser.uid  // Add Firebase UID explicitly
+        'X-Firebase-UID': currentUser.uid,  // Add Firebase UID explicitly
+        'uid': currentUser.uid,  // Add uid directly for Firebase auth
+        'firebase-uid': currentUser.uid,  // Alternative format
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       };
 
       // Use our blog service to delete the blog with custom headers
-      const response = await deleteBlog(deleteId, idToken, customHeaders);
+      try {
+        const response = await deleteBlog(deleteId, idToken, customHeaders);
+        console.log("Delete successful:", response);
 
-      console.log("Delete successful:", response);
-
-      // If successful, update UI
-      setBlogs(prev => prev.filter(blog => blog._id !== deleteId));
-      setShowDeleteModal(false);
-      setDeleteId(null);
-      setError("");
-
-      // Trigger a refresh of the blog list
-      setRefreshKey(prevKey => prevKey + 1);
-
-      // Show success message
-      const successMessage = document.createElement('div');
-      successMessage.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
-      successMessage.textContent = 'Blog deleted successfully';
-      document.body.appendChild(successMessage);
-
-      // Remove the success message after 3 seconds
-      setTimeout(() => {
-        if (document.body.contains(successMessage)) {
-          document.body.removeChild(successMessage);
+        // Update cached blogs in sessionStorage
+        try {
+          const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
+          const updatedBlogs = cachedBlogs.filter(blog => blog._id !== deleteId);
+          sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
+          console.log(`Removed blog ${deleteId} from cached blogs in sessionStorage`);
+        } catch (storageErr) {
+          console.error("Error updating sessionStorage:", storageErr);
         }
-      }, 3000);
 
+        // Update cached user blogs in sessionStorage
+        try {
+          const cachedUserBlogs = JSON.parse(sessionStorage.getItem('cachedUserBlogs') || '[]');
+          const updatedUserBlogs = cachedUserBlogs.filter(blog => blog._id !== deleteId);
+          sessionStorage.setItem('cachedUserBlogs', JSON.stringify(updatedUserBlogs));
+          console.log(`Removed blog ${deleteId} from cached user blogs in sessionStorage`);
+        } catch (storageErr) {
+          console.error("Error updating sessionStorage:", storageErr);
+        }
+
+        // Close the modal
+        setShowDeleteModal(false);
+        setDeleteId(null);
+        setError("");
+
+        // Show success message
+        const successMessage = document.createElement('div');
+        successMessage.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+        successMessage.textContent = 'Blog deleted successfully';
+        document.body.appendChild(successMessage);
+
+        // Remove the success message after 3 seconds
+        setTimeout(() => {
+          if (document.body.contains(successMessage)) {
+            document.body.removeChild(successMessage);
+          }
+        }, 3000);
+
+        // Trigger a refresh of the blog list
+        setTimeout(() => {
+          setRefreshKey(prevKey => prevKey + 1);
+        }, 1000);
+
+        return;
+      } catch (deleteError) {
+        console.error("Error with deleteBlog service:", deleteError);
+        // Continue to alternative approaches
+      }
+
+      // If the service function failed, try a direct fetch approach
+      try {
+        console.log("Trying direct fetch approach");
+
+        // Add a timestamp to avoid caching issues
+        const timestamp = new Date().getTime();
+        const url = `/api/blogs/${deleteId}/?_=${timestamp}`;
+
+        // Extract uid directly from token for Firebase auth
+        let uid = '';
+        try {
+          const tokenParts = idToken.split('.');
+          if (tokenParts.length === 3) {
+            const payload = JSON.parse(atob(tokenParts[1]));
+            uid = payload.user_id || payload.sub || '';
+
+            // If uid is still missing, try to extract from other fields
+            if (!uid && payload.firebase && payload.firebase.identities && payload.firebase.identities.email) {
+              uid = payload.firebase.identities.email[0];
+              console.log("Using email as uid fallback:", uid);
+            }
+
+            // If still no uid but we have email, use that
+            if (!uid && payload.email) {
+              uid = payload.email;
+              console.log("Using email as uid fallback:", uid);
+            }
+
+            // Log the full token payload for debugging
+            console.log("Token payload for debugging:", payload);
+          }
+        } catch (tokenError) {
+          console.error('Error extracting uid from token:', tokenError);
+        }
+
+        const fetchResponse = await fetch(url, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
+            'uid': uid || currentUser.uid,  // Add uid directly for Firebase auth
+            'firebase-uid': uid || currentUser.uid,  // Alternative format
+            'X-Firebase-UID': uid || currentUser.uid,  // Another alternative format
+            'X-User-UID': uid || currentUser.uid,  // Another format
+            'X-User-Email': currentUser.email,
+            'X-User-Display-Name': currentUser.displayName || '',
+            'X-Blog-Author': 'true',  // Indicate this user is the author
+            ...customHeaders
+          }
+        });
+
+        if (!fetchResponse.ok) {
+          throw new Error(`Fetch delete failed with status ${fetchResponse.status}`);
+        }
+
+        console.log("Delete successful with fetch API:", fetchResponse);
+
+        // Update cached blogs in sessionStorage
+        try {
+          const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
+          const updatedBlogs = cachedBlogs.filter(blog => blog._id !== deleteId);
+          sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
+        } catch (storageErr) {
+          console.error("Error updating sessionStorage:", storageErr);
+        }
+
+        // Close the modal
+        setShowDeleteModal(false);
+        setDeleteId(null);
+        setError("");
+
+        // Show success message
+        const successMessage = document.createElement('div');
+        successMessage.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+        successMessage.textContent = 'Blog deleted successfully';
+        document.body.appendChild(successMessage);
+
+        // Remove the success message after 3 seconds
+        setTimeout(() => {
+          if (document.body.contains(successMessage)) {
+            document.body.removeChild(successMessage);
+          }
+        }, 3000);
+
+        // Trigger a refresh of the blog list
+        setTimeout(() => {
+          setRefreshKey(prevKey => prevKey + 1);
+        }, 1000);
+
+        return;
+      } catch (fetchError) {
+        console.error("Fetch delete approach failed:", fetchError);
+      }
+
+      // If all delete attempts failed, restore the blog in the UI
+      setBlogs(prev => {
+        // Check if the blog is already in the list
+        if (prev.some(blog => blog._id === deleteId)) {
+          return prev;
+        }
+        // Otherwise, restore it
+        return blogToDelete ? [...prev, blogToDelete] : prev;
+      });
+
+      throw new Error("All delete attempts failed");
     } catch (err) {
       console.error("Delete error:", err);
 
@@ -311,12 +757,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black pt-32 pb-12">
+    <div className="min-h-screen bg-white dark:bg-black pt-24 sm:pt-28 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="bg-white dark:bg-black p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-serif">
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-white dark:bg-black p-4 sm:p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white font-serif">
               My Dashboard
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-300">
@@ -407,40 +853,61 @@ const Dashboard = () => {
                     {/* Mobile view - card layout */}
                     <div className="grid grid-cols-1 gap-4 mb-4 sm:hidden">
                       {blogs.map(blog => (
-                        <div key={blog._id} className="bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</h3>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {blog.created_at
-                                ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
-                                : "Unknown"}
+                        <div key={blog._id} className="bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+                          <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                            <div className="flex justify-between items-start">
+                              <h3 className="text-gray-800 dark:text-gray-200 font-medium text-lg">{blog.title}</h3>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {blog.created_at
+                                  ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
+                                  : "Unknown"}
+                              </div>
+                            </div>
+
+                            {/* Preview of content if available */}
+                            {blog.content && (
+                              <div className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+                                {blog.content.substring(0, 100)}...
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4 text-gray-600 dark:text-gray-300 text-sm">
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  {blog.views || 0}
+                                </div>
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                  {blog.like_count || 0}
+                                </div>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center space-x-4 mb-3 text-gray-600 dark:text-gray-300 text-sm">
-                            <div className="flex items-center">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              {blog.views || 0}
-                            </div>
-                            <div className="flex items-center">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                              {blog.like_count || 0}
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            <Link to={`/blog/${blog._id}`} className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline text-sm">View</Link>
-                            <Link to={`/edit/${blog._id}`} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 rounded-sm text-xs hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                          <div className="flex border-t border-gray-100 dark:border-gray-800 divide-x divide-gray-100 dark:divide-gray-800">
+                            <Link
+                              to={`/blog/${blog._id}`}
+                              className="flex-1 py-2 text-center text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
+                            >
+                              View
+                            </Link>
+                            <Link
+                              to={`/edit/${blog._id}`}
+                              className="flex-1 py-2 text-center text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
+                            >
                               Edit
                             </Link>
                             <button
                               onClick={() => handleDeleteClick(blog._id)}
-                              className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline text-sm"
+                              className="flex-1 py-2 text-center text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
                             >
                               Delete
                             </button>
@@ -535,33 +1002,51 @@ const Dashboard = () => {
                     {/* Mobile view - card layout */}
                     <div className="grid grid-cols-1 gap-4 mb-4 sm:hidden">
                       {likedBlogs.map(blog => (
-                        <div key={blog._id} className="bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg p-4 shadow-sm">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="text-gray-800 dark:text-gray-200 font-medium">{blog.title}</h3>
-                          </div>
-
-                          <div className="text-gray-600 dark:text-gray-400 text-sm mb-3">
-                            By {blog.author_name || "Anonymous"}
-                          </div>
-
-                          <div className="flex items-center space-x-4 mb-3 text-gray-600 dark:text-gray-300 text-sm">
-                            <div className="flex items-center">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              {blog.views || 0}
+                        <div key={blog._id} className="bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+                          <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+                            <div className="flex justify-between items-start">
+                              <h3 className="text-gray-800 dark:text-gray-200 font-medium text-lg">{blog.title}</h3>
                             </div>
-                            <div className="flex items-center">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                              </svg>
-                              {blog.like_count || 0}
+
+                            <div className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+                              By {blog.author_name || "Anonymous"}
+                            </div>
+
+                            {/* Preview of content if available */}
+                            {blog.content && (
+                              <div className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+                                {blog.content.substring(0, 100)}...
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4 text-gray-600 dark:text-gray-300 text-sm">
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  {blog.views || 0}
+                                </div>
+                                <div className="flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                  </svg>
+                                  {blog.like_count || 0}
+                                </div>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex flex-wrap gap-2">
-                            <Link to={`/blog/${blog._id}`} className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:underline text-sm">View</Link>
+                          <div className="flex border-t border-gray-100 dark:border-gray-800">
+                            <Link
+                              to={`/blog/${blog._id}`}
+                              className="flex-1 py-2 text-center text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
+                            >
+                              View Blog
+                            </Link>
                           </div>
                         </div>
                       ))}

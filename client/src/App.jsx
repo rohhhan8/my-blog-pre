@@ -1,11 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { LikeProvider } from './context/LikeContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import PageTransition from './components/PageTransition';
 import NameFixer from './components/NameFixer';
+import LogoLoader from './components/LogoLoader';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -92,8 +94,42 @@ const addCustomAnimations = () => {
     .animate-fade-in-up {
       animation: fade-in-up 0.5s ease-out forwards;
     }
+
+    /* Page transition animations */
+    .page-slide-in {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .page-slide-in-active {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .page-slide-out {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    /* Loading bar animation */
+    @keyframes loadingProgress {
+      0% { width: 0%; }
+      50% { width: 70%; }
+      100% { width: 100%; }
+    }
+
+    .loading-progress-bar {
+      animation: loadingProgress 2s ease-in-out infinite;
+    }
+
     .animation-delay-300 {
       animation-delay: 0.3s;
+    }
+    .animation-delay-500 {
+      animation-delay: 0.5s;
     }
     .animation-delay-600 {
       animation-delay: 0.6s;
@@ -103,6 +139,7 @@ const addCustomAnimations = () => {
 };
 
 function App() {
+  const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
     return savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -119,6 +156,11 @@ function App() {
     // Add custom animations
     addCustomAnimations();
   }, [theme]);
+
+  // Set loading to false immediately - no initial app loader
+  useEffect(() => {
+    setLoading(false);
+  }, []);
 
   // Add a global effect to replace author names in the DOM
   useEffect(() => {
@@ -219,13 +261,15 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <div className="flex flex-col min-h-screen">
-          <NameFixer />
-          <Navbar theme={theme} toggleTheme={toggleTheme} />
-          <main className="flex-grow">
-            <PageTransition>
-              <Routes>
+      <LikeProvider>
+        <Router>
+          {loading && <LogoLoader />}
+          <div className="flex flex-col min-h-screen">
+            <NameFixer />
+            <Navbar theme={theme} toggleTheme={toggleTheme} />
+            <main className="flex-grow">
+              <PageTransition>
+                <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
@@ -285,7 +329,8 @@ function App() {
           <Footer />
         </div>
       </Router>
-    </AuthProvider>
+    </LikeProvider>
+  </AuthProvider>
   );
 }
 

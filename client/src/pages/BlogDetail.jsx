@@ -36,7 +36,18 @@ const BlogDetail = () => {
   const [blog, setBlog] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [isLiked, setIsLiked] = useState(false);
+  // Check localStorage for liked status
+  const checkLikedStatus = (blogId) => {
+    try {
+      const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
+      return likedBlogs[blogId] === true;
+    } catch (error) {
+      console.error("Error checking liked status:", error);
+      return false;
+    }
+  };
+
+  const [isLiked, setIsLiked] = useState(checkLikedStatus(blogId));
   const [likeCount, setLikeCount] = useState(0);
   const [viewCount, setViewCount] = useState(0);
   const [shareUrl, setShareUrl] = useState("");
@@ -359,10 +370,28 @@ const BlogDetail = () => {
         setIsLiked(true);
         setLikeCount(prev => response.data.like_count);
         console.log("Blog liked successfully");
+
+        // Store the like status in localStorage
+        try {
+          const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
+          likedBlogs[blogId] = true;
+          localStorage.setItem('likedBlogs', JSON.stringify(likedBlogs));
+        } catch (storageErr) {
+          console.error("Error updating localStorage:", storageErr);
+        }
       } else if (response.data.status === 'unliked') {
         setIsLiked(false);
         setLikeCount(prev => response.data.like_count);
         console.log("Blog unliked successfully");
+
+        // Remove the like status from localStorage
+        try {
+          const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
+          delete likedBlogs[blogId];
+          localStorage.setItem('likedBlogs', JSON.stringify(likedBlogs));
+        } catch (storageErr) {
+          console.error("Error updating localStorage:", storageErr);
+        }
       }
     } catch (err) {
       console.error("Error liking post:", err);

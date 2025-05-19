@@ -249,11 +249,11 @@ const EditBlog = () => {
 
   // Main form
   return (
-    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200 pt-32">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200 pt-24 sm:pt-28">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-6 md:p-8">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-playfair mb-6">
+          <div className="p-4 md:p-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-playfair mb-4">
               Edit Blog Post
             </h1>
 
@@ -296,7 +296,7 @@ const EditBlog = () => {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Write your blog content here..."
-                  rows={12}
+                  rows={8}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blog-accent focus:border-blog-accent dark:bg-gray-700 dark:text-white transition-colors duration-200"
                   required
                 />

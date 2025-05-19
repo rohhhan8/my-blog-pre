@@ -272,7 +272,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 pb-12">
+    <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 sm:pt-28 pb-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Warning message for limited profile info */}
@@ -292,10 +292,10 @@ const Profile = () => {
           )}
 
           {/* Profile Header */}
-          <div className="p-6 md:p-8 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+          <div className="p-4 sm:p-6 md:p-8 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
               {/* Avatar */}
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-4xl font-medium overflow-hidden">
+              <div className="w-24 h-24 sm:w-28 md:w-32 sm:h-28 md:h-32 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-4xl font-medium overflow-hidden shadow-md">
                 {profile.avatar_url ? (
                   <img
                     src={profile.avatar_url}
@@ -308,35 +308,35 @@ const Profile = () => {
               </div>
 
               {/* Profile Info */}
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <div className="flex-1 text-center sm:text-left">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
                   {profile.display_name || profile.username}
                 </h1>
 
                 {profile.profession && (
-                  <p className="text-gray-600 dark:text-gray-400 text-lg mb-2">
+                  <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg mb-2">
                     {profile.profession}
                   </p>
                 )}
 
-                <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center sm:justify-start gap-3 sm:gap-4 mt-3 sm:mt-4">
+                  <div className="flex items-center text-gray-600 dark:text-gray-400 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span>Member since {profile.member_since}</span>
+                    <span className="truncate">Member since {profile.member_since}</span>
                   </div>
 
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="flex items-center text-gray-600 dark:text-gray-400 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1M19 20a2 2 0 002-2V8a2 2 0 00-2-2h-5a2 2 0 00-2 2v12a2 2 0 002 2h5z" />
                     </svg>
                     <span>{profile.blog_count} {profile.blog_count === 1 ? 'post' : 'posts'}</span>
                   </div>
 
                   {profile.gender && (
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center text-gray-600 dark:text-gray-400 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       <span>{profile.gender}</span>
@@ -344,21 +344,21 @@ const Profile = () => {
                   )}
 
                   {profile.location && (
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="flex items-center text-gray-600 dark:text-gray-400 text-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span>{profile.location}</span>
+                      <span className="truncate">{profile.location}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Always show edit button for own profile */}
                 {(isOwnProfile || (!username && currentUser)) && (
-                  <div className="mt-6">
+                  <div className="mt-4 sm:mt-6">
                     <Link to="/profile/edit">
-                      <Button variant="secondary" className="px-6 py-2">
+                      <Button variant="secondary" className="px-4 sm:px-6 py-1.5 sm:py-2 text-sm sm:text-base">
                         Edit Profile
                       </Button>
                     </Link>
@@ -370,21 +370,21 @@ const Profile = () => {
 
           {/* Profile Bio */}
           {profile.bio && (
-            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">About</h2>
-              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{profile.bio}</p>
+            <div className="p-4 sm:p-6 md:p-8 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-4">About</h2>
+              <p className="text-gray-700 dark:text-gray-300 whitespace-pre-line text-sm sm:text-base">{profile.bio}</p>
             </div>
           )}
 
           {/* Website Link */}
           {profile.website && (
-            <div className="p-6 md:p-8 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Website</h2>
+            <div className="p-4 sm:p-6 md:p-8 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-4">Website</h2>
               <a
                 href={profile.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blog-accent hover:underline"
+                className="text-blog-accent hover:underline text-sm sm:text-base break-all"
               >
                 {profile.website}
               </a>
@@ -392,9 +392,9 @@ const Profile = () => {
           )}
 
           {/* Back Button */}
-          <div className="p-6 md:p-8">
-            <Link to="/" className="inline-flex items-center text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="p-4 sm:p-6 md:p-8">
+            <Link to="/" className="inline-flex items-center text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white text-sm sm:text-base">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Back to Home

@@ -37,9 +37,33 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             decoded_token = verify_firebase_token(id_token)
             print(f"Token verified successfully. Decoded token: {decoded_token}")
 
-            uid = decoded_token.get('uid')
+            # Try to get uid from various possible fields in the token
+            uid = decoded_token.get('uid') or decoded_token.get('user_id') or decoded_token.get('sub')
+
             if not uid:
-                raise exceptions.AuthenticationFailed('Invalid token: missing uid')
+                print(f"WARNING: Token missing uid. Token payload: {decoded_token}")
+                # Try to extract uid from token structure if possible
+                try:
+                    # For Firebase tokens, sometimes the uid is in the 'sub' field or other locations
+                    if 'firebase' in decoded_token and 'identities' in decoded_token['firebase']:
+                        # Try to extract from firebase identities
+                        identities = decoded_token['firebase'].get('identities', {})
+                        if 'email' in identities and identities['email']:
+                            email_identity = identities['email'][0]
+                            print(f"Using email as fallback identity: {email_identity}")
+                            uid = email_identity
+
+                    # If we still don't have a uid but have an email, use that as a last resort
+                    if not uid and decoded_token.get('email'):
+                        uid = decoded_token.get('email')
+                        print(f"Using email as uid fallback: {uid}")
+
+                    # If we still don't have a uid, raise the exception
+                    if not uid:
+                        raise exceptions.AuthenticationFailed('Invalid token: missing uid')
+                except Exception as uid_error:
+                    print(f"Error extracting uid from token: {str(uid_error)}")
+                    raise exceptions.AuthenticationFailed('Invalid token: missing uid')
 
             # Get user information from the token
             email = decoded_token.get('email', '')
@@ -96,7 +120,30 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
 
                     # If we have a decoded token (from either source), use it
                     if decoded_token:
+                        # Try to get uid from various possible fields in the token
                         uid = decoded_token.get('uid') or decoded_token.get('user_id') or decoded_token.get('sub')
+
+                        # If uid is still missing, try to extract from other fields
+                        if not uid:
+                            print(f"WARNING: Fallback token missing uid. Token payload: {decoded_token}")
+                            # Try to extract from firebase identities if present
+                            if 'firebase' in decoded_token and 'identities' in decoded_token['firebase']:
+                                identities = decoded_token['firebase'].get('identities', {})
+                                if 'email' in identities and identities['email']:
+                                    email_identity = identities['email'][0]
+                                    print(f"Using email as fallback identity: {email_identity}")
+                                    uid = email_identity
+
+                            # If we still don't have a uid but have an email, use that as a last resort
+                            if not uid and decoded_token.get('email'):
+                                uid = decoded_token.get('email')
+                                print(f"Using email as uid fallback: {uid}")
+
+                            # If we still don't have a uid, we can't proceed
+                            if not uid:
+                                print("ERROR: Could not extract uid from fallback token")
+                                raise Exception("Missing uid in fallback token")
+
                         email = decoded_token.get('email', '')
                         display_name = decoded_token.get('name', '') or decoded_token.get('display_name', '')
 

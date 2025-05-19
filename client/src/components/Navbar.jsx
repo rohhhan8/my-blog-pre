@@ -109,7 +109,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center">
-              <span className="text-3xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">BlogHub</span>
+              <span className="text-4xl font-bold text-gray-900 dark:text-white font-serif tracking-tight">BlogHub</span>
             </Link>
 
             {/* Install button - hidden by default, shown by the beforeinstallprompt event */}
@@ -125,7 +125,7 @@ const Navbar = () => {
           <div className="hidden md:flex md:items-center md:space-x-8">
             <Link
               to="/"
-              className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
+              className={`px-4 py-2.5 text-lg font-medium transition-colors duration-200 ${
                 location.pathname === '/'
                   ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -153,7 +153,7 @@ const Navbar = () => {
               <>
                 <Link
                   to="/create"
-                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-lg font-medium transition-colors duration-200 ${
                     location.pathname === '/create'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -163,7 +163,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/dashboard"
-                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-lg font-medium transition-colors duration-200 ${
                     location.pathname === '/dashboard'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -172,28 +172,22 @@ const Navbar = () => {
                   My Dashboard
                 </Link>
                 <div className="relative group">
-                  <button className="flex items-center space-x-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200">
-                    <div className="h-10 w-10 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-lg font-medium">
+                  <Link to="/profile" className="flex items-center space-x-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200">
+                    <div className="h-11 w-11 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-xl font-medium">
                       {displayName?.charAt(0) || currentUser.email?.charAt(0) || 'U'}
                     </div>
-                    <span className="text-base">{displayName || currentUser.email.split('@')[0]}</span>
-                  </button>
+                    <span className="text-lg">{displayName || currentUser.email.split('@')[0]}</span>
+                  </Link>
                   <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-black rounded-md shadow-lg dark:shadow-gray-700/30 border border-gray-100 dark:border-gray-700 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
                     <Link
-                      to="/profile"
-                      className="block w-full text-left px-4 py-2.5 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
-                    >
-                      My Profile
-                    </Link>
-                    <Link
                       to="/dashboard"
-                      className="block w-full text-left px-4 py-2.5 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
+                      className="block w-full text-left px-4 py-2.5 text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
                     >
                       Dashboard
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2.5 text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
+                      className="block w-full text-left px-4 py-2.5 text-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors duration-200"
                     >
                       Sign out
                     </button>
@@ -204,7 +198,7 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
-                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-lg font-medium transition-colors duration-200 ${
                     location.pathname === '/login'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -214,7 +208,7 @@ const Navbar = () => {
                 </Link>
                 <Link
                   to="/signup"
-                  className={`px-4 py-2.5 text-base font-medium transition-colors duration-200 ${
+                  className={`px-4 py-2.5 text-lg font-medium transition-colors duration-200 ${
                     location.pathname === '/signup'
                       ? 'text-gray-900 dark:text-white border-b-2 border-gray-900 dark:border-white'
                       : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'

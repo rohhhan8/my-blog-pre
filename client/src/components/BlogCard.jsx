@@ -1,18 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../context/AuthContext';
+import { useLikes } from '../context/LikeContext';
 import { getUserProfile } from '../services/profileService';
-import axios from 'axios';
+import { likeBlog } from '../services/blogService';
 
 const BlogCard = ({ blog }) => {
   const { currentUser } = useAuth();
+  const { isLiked: checkIsLiked, toggleLike: contextToggleLike } = useLikes();
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(blog.is_liked || false);
+
+  // Initialize like status from context
+  const [isLiked, setIsLiked] = useState(() => {
+    // First check if the blog has is_liked property set
+    if (blog.is_liked === true) return true;
+
+    // Then check the like context
+    return checkIsLiked(blog._id);
+  });
   const [likeCount, setLikeCount] = useState(blog.like_count || 0);
-  const [viewCount, setViewCount] = useState(blog.views || 0);
-  const [authorProfile, setAuthorProfile] = useState(null);
+  const [viewCount] = useState(blog.views || 0); // Removed unused setter
+  // We need setAuthorProfile for the fetchAuthorProfile function, but don't use the value directly
+  const [, setAuthorProfile] = useState(null);
 
   // Force the author name to be "Kuldeep" if it's "Official Editz"
   const initialAuthorName =
@@ -102,9 +113,7 @@ const BlogCard = ({ blog }) => {
     ? formatDistanceToNow(new Date(blog.created_at), { addSuffix: true })
     : 'Unknown date';
 
-  const formattedDate = blog.created_at
-    ? format(new Date(blog.created_at), 'MMM d, yyyy • h:mm a')
-    : 'Unknown date';
+  // Removed unused formattedDate variable
 
   const truncateContent = (content, maxLength = 120) => {
     if (!content) return '';
@@ -141,7 +150,7 @@ const BlogCard = ({ blog }) => {
   };
 
   // Handle like/unlike
-  const handleLike = async (e) => {
+  const handleLikeClick = async (e) => {
     e.preventDefault(); // Prevent navigation to blog detail
     e.stopPropagation(); // Stop event propagation
 
@@ -164,17 +173,23 @@ const BlogCard = ({ blog }) => {
 
     try {
       const idToken = await currentUser.getIdToken();
-      const response = await axios.post(
-        `/api/blogs/${blog._id}/like/`,
-        {},
-        { headers: { Authorization: `Bearer ${idToken}` } }
-      );
+
+      // Use our likeBlog service function
+      const response = await likeBlog(blog._id, idToken);
 
       // Update with the actual server response
-      setIsLiked(response.data.status === 'liked');
-      setLikeCount(response.data.like_count);
+      const newLikedState = response.status === 'liked';
+      setIsLiked(newLikedState);
+      setLikeCount(response.like_count);
 
-      console.log("Like response:", response.data);
+      // Update the like context
+      if (newLikedState) {
+        contextToggleLike(blog._id);
+      } else {
+        contextToggleLike(blog._id);
+      }
+
+      console.log("Like response:", response);
     } catch (err) {
       console.error("Error liking post:", err);
       // Revert to original state if there was an error
@@ -184,7 +199,7 @@ const BlogCard = ({ blog }) => {
   };
 
   // Handle share
-  const handleShare = async (e) => {
+  const handleShareClick = async (e) => {
     e.preventDefault(); // Prevent navigation to blog detail
     e.stopPropagation(); // Stop event propagation
 
@@ -260,30 +275,134 @@ const BlogCard = ({ blog }) => {
       return char.charCodeAt(0) + ((acc << 5) - acc);
     }, 0);
 
-    // Define a set of dark, vibrant colors for better contrast with white text
+    // Define a wide variety of solid colors for blog cards
     const colorPalette = [
+      // Reds
+      '#FF0000', // Red
+      '#DC2626', // Red-600
+      '#B91C1C', // Red-700
+      '#991B1B', // Red-800
+      '#7F1D1D', // Red-900
+      '#EF4444', // Red-500
+
+      // Oranges
+      '#FF8C00', // Dark Orange
+      '#F97316', // Orange-500
+      '#EA580C', // Orange-600
+      '#C2410C', // Orange-700
+      '#FF4500', // OrangeRed
+      '#FB923C', // Orange-400
+
+      // Yellows
+      '#FFFF00', // Yellow
+      '#FACC15', // Yellow-400
+      '#EAB308', // Yellow-500
+      '#CA8A04', // Yellow-600
+      '#A16207', // Yellow-700
+      '#FEF08A', // Yellow-200
+
+      // Greens
+      '#00FF00', // Lime
+      '#22C55E', // Green-500
+      '#16A34A', // Green-600
+      '#15803D', // Green-700
+      '#166534', // Green-800
+      '#4ADE80', // Green-400
+      '#84CC16', // Lime-500
+      '#65A30D', // Lime-600
+      '#008000', // Green
+
+      // Blues
+      '#0000FF', // Blue
+      '#3B82F6', // Blue-500
+      '#2563EB', // Blue-600
+      '#1D4ED8', // Blue-700
+      '#1E40AF', // Blue-800
+      '#60A5FA', // Blue-400
+      '#0284C7', // Sky-600
+      '#0369A1', // Sky-700
+      '#0EA5E9', // Sky-500
+
+      // Purples/Violets
+      '#800080', // Purple
+      '#8B5CF6', // Violet-500
+      '#7C3AED', // Violet-600
+      '#6D28D9', // Violet-700
+      '#5B21B6', // Violet-800
+      '#A78BFA', // Violet-400
+      '#9333EA', // Purple-600
+      '#7E22CE', // Purple-700
+      '#6B21A8', // Purple-800
+
+      // Pinks
+      '#FFC0CB', // Pink
+      '#EC4899', // Pink-500
+      '#DB2777', // Pink-600
+      '#BE185D', // Pink-700
+      '#9D174D', // Pink-800
+      '#F472B6', // Pink-400
+      '#FF1493', // Deep Pink
+
+      // Browns
+      '#A52A2A', // Brown
+      '#92400E', // Amber-800
+      '#78350F', // Amber-900
+      '#B45309', // Amber-700
+      '#D97706', // Amber-600
+      '#F59E0B', // Amber-500
+
+      // Teals/Cyans
+      '#008080', // Teal
+      '#0D9488', // Teal-600
+      '#0F766E', // Teal-700
+      '#115E59', // Teal-800
+      '#14B8A6', // Teal-500
+      '#2DD4BF', // Teal-400
+      '#06B6D4', // Cyan-500
+      '#0891B2', // Cyan-600
+      '#00FFFF', // Cyan
+
+      // Grays/Blacks
       '#000000', // Black
-      '#1a1a1a', // Almost black
-      '#2d3748', // Dark slate gray
-      '#1a365d', // Dark blue
-      '#2c5282', // Navy blue
-      '#2b6cb0', // Royal blue
-      '#2c7a7b', // Teal
-      '#285e61', // Dark teal
-      '#22543d', // Dark green
-      '#276749', // Forest green
-      '#2f855a', // Green
-      '#744210', // Brown
-      '#7b341e', // Rust
-      '#9c4221', // Brick
-      '#c53030', // Red
-      '#b7791f', // Amber
-      '#975a16', // Yellow
-      '#702459', // Purple
-      '#521b41', // Plum
-      '#6b46c1', // Indigo
-      '#4c51bf', // Blue
-      '#434190', // Indigo
+      '#18181B', // Zinc-900
+      '#27272A', // Zinc-800
+      '#3F3F46', // Zinc-700
+      '#52525B', // Zinc-600
+      '#71717A', // Zinc-500
+      '#1E293B', // Slate-800
+      '#334155', // Slate-700
+      '#475569', // Slate-600
+
+      // Other colors
+      '#4B0082', // Indigo
+      '#9400D3', // DarkViolet
+      '#8A2BE2', // BlueViolet
+      '#9370DB', // MediumPurple
+      '#6A0DAD', // Purple
+      '#FF00FF', // Magenta
+      '#C71585', // MediumVioletRed
+      '#FF6347', // Tomato
+      '#FF7F50', // Coral
+      '#20B2AA', // LightSeaGreen
+      '#3CB371', // MediumSeaGreen
+      '#2E8B57', // SeaGreen
+      '#228B22', // ForestGreen
+      '#32CD32', // LimeGreen
+      '#00FA9A', // MediumSpringGreen
+      '#00CED1', // DarkTurquoise
+      '#5F9EA0', // CadetBlue
+      '#4682B4', // SteelBlue
+      '#6495ED', // CornflowerBlue
+      '#4169E1', // RoyalBlue
+      '#191970', // MidnightBlue
+      '#8B4513', // SaddleBrown
+      '#A0522D', // Sienna
+      '#CD853F', // Peru
+      '#DEB887', // BurlyWood
+      '#8B0000', // DarkRed
+      '#800000', // Maroon
+      '#B22222', // FireBrick
+      '#DC143C', // Crimson
     ];
 
     // Use the hash to select a color from the palette
@@ -312,7 +431,7 @@ const BlogCard = ({ blog }) => {
   return (
     <div
       className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-gray-300 hover:transform hover:scale-[1.02] hover:-translate-y-1 h-[24rem] flex flex-col relative"
-      style={{ backgroundColor: bgColor }}
+      style={{ background: bgColor }}
     >
       <div className="flex flex-col h-full w-full">
         {/* Image if available, otherwise show a decorative header with title overlay */}
@@ -350,32 +469,36 @@ const BlogCard = ({ blog }) => {
           ) : (
             <div
               className="h-32 w-full flex items-center justify-center p-4 relative"
-              style={{ backgroundColor: getBlogColor() }}
+              style={{ background: getBlogColor() }}
             >
               {/* Pattern overlay for visual interest */}
               <div className="absolute inset-0 opacity-10"
                 style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E")'}}
               ></div>
 
+              {/* Decorative elements */}
+              <div className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white opacity-10"></div>
+              <div className="absolute bottom-2 right-2 w-12 h-12 rounded-full bg-white opacity-10"></div>
+
               {/* Title overlay */}
-              <h2 className="text-xl font-bold text-center z-10 font-playfair line-clamp-3" style={{ color: textColor }}>
+              <h2 className="text-xl font-bold text-center z-10 font-playfair line-clamp-3 px-2" style={{ color: textColor }}>
                 {blog.title}
               </h2>
             </div>
           )}
         </Link>
 
-        <div className="px-5 py-4 flex-grow flex flex-col justify-between">
-          <div className="flex flex-col h-full justify-between">
-            <Link to={`/blog/${blog._id}`} className="block mb-auto overflow-hidden">
+        <div className="px-4 py-3 flex-grow flex flex-col justify-between">
+          <div className="flex flex-col h-full">
+            <Link to={`/blog/${blog._id}`} className="block flex-grow">
               {/* Only show title here if we don't have it in the header (when there's an image) */}
               {blog.image_url && (
-                <h2 className="text-lg font-bold font-playfair mb-2 line-clamp-2 h-12" style={{ color: textColor }}>
+                <h2 className="text-lg font-bold font-playfair mb-2 line-clamp-2" style={{ color: textColor }}>
                   {blog.title}
                 </h2>
               )}
 
-              <div className="flex items-center mb-3">
+              <div className="flex items-center mb-2">
                 <Link
                   to={`/profile/${encodeURIComponent(authorName)}`}
                   onClick={(e) => {
@@ -390,13 +513,13 @@ const BlogCard = ({ blog }) => {
                   }}
                 >
                   <div
-                    className="h-8 w-8 rounded-full flex items-center justify-center font-medium border border-white/30 hover:shadow-md transition-shadow"
+                    className="h-7 w-7 rounded-full flex items-center justify-center font-medium border border-white/30 hover:shadow-md transition-shadow"
                     style={{ backgroundColor: bgColor, color: textColor }}
                   >
                     {authorName?.charAt(0)?.toUpperCase() || blog.author_name?.charAt(0)?.toUpperCase() || blog.author?.charAt(0)?.toUpperCase() || 'A'}
                   </div>
                 </Link>
-                <div className="ml-3">
+                <div className="ml-2">
                   <Link
                     to={`/profile/${encodeURIComponent(authorName)}`}
                     onClick={(e) => {
@@ -423,14 +546,14 @@ const BlogCard = ({ blog }) => {
               </div>
 
               {/* Expanded content preview for blogs without images */}
-              <div className={`text-sm overflow-hidden ${blog.image_url ? 'line-clamp-2 mb-2' : 'line-clamp-5 mb-2'}`}
-                style={{ maxHeight: blog.image_url ? '3rem' : '8rem', color: textColor, opacity: 0.9 }}>
-                {truncateContent(blog.content, blog.image_url ? 120 : 280)}
+              <div className={`text-sm overflow-hidden ${blog.image_url ? 'line-clamp-2 mb-2' : 'line-clamp-4 mb-2'}`}
+                style={{ color: textColor, opacity: 0.9 }}>
+                {truncateContent(blog.content, blog.image_url ? 120 : 240)}
               </div>
 
               {/* Add tags if available */}
               {blog.tags && blog.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   {blog.tags.map((tag, index) => (
                     <span
                       key={index}
@@ -506,7 +629,7 @@ const BlogCard = ({ blog }) => {
                   <div className="flex space-x-2">
                     {/* Like button with improved styling */}
                     <button
-                      onClick={handleLike}
+                      onClick={handleLikeClick}
                       className="p-2 rounded-full transition-all duration-300 border transform hover:scale-110 active:scale-90"
                       style={{
                         backgroundColor: isLiked ? `${textColor}30` : 'transparent',
@@ -530,7 +653,7 @@ const BlogCard = ({ blog }) => {
 
                     {/* Share button with improved styling */}
                     <button
-                      onClick={handleShare}
+                      onClick={handleShareClick}
                       className="p-2 rounded-full transition-all duration-300 border"
                       style={{
                         backgroundColor: 'transparent',
@@ -545,20 +668,21 @@ const BlogCard = ({ blog }) => {
                     </button>
                   </div>
 
-                  {/* Read More button with improved styling */}
+                  {/* Read More button with card-matching color */}
                   <Link
                     to={`/blog/${blog._id}`}
-                    className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 group shadow-sm"
+                    className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 group shadow-sm ml-auto"
                     style={{
-                      backgroundColor: textColor,
-                      color: bgColor
+                      backgroundColor: bgColor,
+                      color: textColor,
+                      border: `1px solid ${textColor}30`
                     }}
                     aria-label="Read the full article"
                   >
                     Read More
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
+                      className="h-4 w-4 ml-1 transform transition-transform duration-300 group-hover:translate-x-1"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"

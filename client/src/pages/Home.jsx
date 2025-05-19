@@ -4,6 +4,8 @@ import axios from "axios";
 import BlogCard from "../components/BlogCard";
 import { useAuth } from "../context/AuthContext";
 import { getUserProfile } from "../services/profileService";
+import { getAllBlogs } from "../services/blogService";
+import apiClient from "../services/apiClient";
 
 const Home = () => {
   const { currentUser } = useAuth();
@@ -113,25 +115,170 @@ const Home = () => {
     const fetchBlogs = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("/api/blogs/");
-        const data = response.data;
-        if (Array.isArray(data)) {
-          setBlogs(data);
-          setFilteredBlogs(data);
+        setAnimateBlogs(false); // Reset animation state
 
-          // Delay animation to ensure smooth loading
-          setTimeout(() => setAnimateBlogs(true), 100);
-          setError("");
+        // Check if we have cached blogs in sessionStorage
+        const cachedBlogs = sessionStorage.getItem('cachedBlogs');
+        const cacheTimestamp = sessionStorage.getItem('blogsCacheTimestamp');
+        const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+        const cacheValid = cacheAge < 5 * 60 * 1000; // 5 minutes cache validity
 
-          // Refresh author profiles in the background
-          refreshAuthorProfiles(data).catch(err => {
-            console.error("Error refreshing author profiles:", err);
-          });
-        } else {
-          throw new Error("Invalid response structure");
+        // If we have valid cached blogs, use them immediately
+        if (cachedBlogs && cacheValid) {
+          try {
+            const parsedBlogs = JSON.parse(cachedBlogs);
+            if (Array.isArray(parsedBlogs) && parsedBlogs.length > 0) {
+              console.log("Using cached blogs from sessionStorage");
+              setBlogs(parsedBlogs);
+              setFilteredBlogs(parsedBlogs);
+              setError(""); // Clear any previous errors
+
+              // Show animation immediately for cached blogs
+              setTimeout(() => setAnimateBlogs(true), 50);
+              setLoading(false);
+
+              // Refresh in the background
+              refreshBlogsInBackground();
+              return;
+            }
+          } catch (cacheError) {
+            console.error("Error parsing cached blogs:", cacheError);
+          }
         }
+
+        // If no valid cache, try to fetch from API
+        try {
+          // Get token from localStorage if available
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            apiClient.setAuthToken(token);
+          }
+
+          const data = await getAllBlogs();
+          if (Array.isArray(data)) {
+            setBlogs(data);
+            setFilteredBlogs(data);
+            setError(""); // Clear any previous errors
+
+            // Cache the blogs in sessionStorage
+            try {
+              sessionStorage.setItem('cachedBlogs', JSON.stringify(data));
+              sessionStorage.setItem('blogsCacheTimestamp', Date.now().toString());
+            } catch (storageError) {
+              console.error("Error caching blogs:", storageError);
+            }
+
+            // Delay animation to ensure smooth loading
+            setTimeout(() => setAnimateBlogs(true), 100);
+
+            // Refresh author profiles in the background
+            refreshAuthorProfiles(data).catch(err => {
+              console.error("Error refreshing author profiles:", err);
+            });
+
+            return;
+          }
+        } catch (apiError) {
+          console.error("Error fetching blogs with API:", apiError);
+          // Continue to fallback approaches
+        }
+
+        // If API call failed, try direct axios call
+        try {
+          console.log("Trying direct axios call for blogs");
+          const response = await axios.get('/api/blogs/');
+
+          if (Array.isArray(response.data)) {
+            setBlogs(response.data);
+            setFilteredBlogs(response.data);
+            setError(""); // Clear any previous errors
+
+            // Cache the blogs in sessionStorage
+            try {
+              sessionStorage.setItem('cachedBlogs', JSON.stringify(response.data));
+              sessionStorage.setItem('blogsCacheTimestamp', Date.now().toString());
+            } catch (storageError) {
+              console.error("Error caching blogs:", storageError);
+            }
+
+            // Delay animation to ensure smooth loading
+            setTimeout(() => setAnimateBlogs(true), 100);
+
+            // Refresh author profiles in the background
+            refreshAuthorProfiles(response.data).catch(err => {
+              console.error("Error refreshing author profiles:", err);
+            });
+
+            return;
+          }
+        } catch (axiosError) {
+          console.error("Error fetching blogs with direct axios:", axiosError);
+        }
+
+        // If all attempts failed, try fetch API
+        try {
+          console.log("Trying fetch API for blogs");
+          const fetchResponse = await fetch('/api/blogs/');
+
+          if (!fetchResponse.ok) {
+            throw new Error(`Fetch failed with status ${fetchResponse.status}`);
+          }
+
+          const data = await fetchResponse.json();
+
+          if (Array.isArray(data)) {
+            setBlogs(data);
+            setFilteredBlogs(data);
+            setError(""); // Clear any previous errors
+
+            // Cache the blogs in sessionStorage
+            try {
+              sessionStorage.setItem('cachedBlogs', JSON.stringify(data));
+              sessionStorage.setItem('blogsCacheTimestamp', Date.now().toString());
+            } catch (storageError) {
+              console.error("Error caching blogs:", storageError);
+            }
+
+            // Delay animation to ensure smooth loading
+            setTimeout(() => setAnimateBlogs(true), 100);
+
+            // Refresh author profiles in the background
+            refreshAuthorProfiles(data).catch(err => {
+              console.error("Error refreshing author profiles:", err);
+            });
+
+            return;
+          }
+        } catch (fetchError) {
+          console.error("Error fetching blogs with fetch API:", fetchError);
+        }
+
+        // If we get here, all attempts failed
+        throw new Error("All attempts to fetch blogs failed");
       } catch (err) {
         console.error("Error fetching blogs:", err);
+
+        // Try to use cached blogs even if they're expired
+        try {
+          const cachedBlogs = sessionStorage.getItem('cachedBlogs');
+          if (cachedBlogs) {
+            const parsedBlogs = JSON.parse(cachedBlogs);
+            if (Array.isArray(parsedBlogs) && parsedBlogs.length > 0) {
+              console.log("Using expired cached blogs as fallback");
+              setBlogs(parsedBlogs);
+              setFilteredBlogs(parsedBlogs);
+              setError("Using cached blogs. Some content may be outdated.");
+
+              // Show animation for cached blogs
+              setTimeout(() => setAnimateBlogs(true), 50);
+              return;
+            }
+          }
+        } catch (cacheError) {
+          console.error("Error using expired cached blogs:", cacheError);
+        }
+
+        // If no cached blogs, show error
         setError("Failed to load blogs. Please try again later.");
         setBlogs([]);
       } finally {
@@ -139,8 +286,46 @@ const Home = () => {
       }
     };
 
+    // Function to refresh blogs in the background
+    const refreshBlogsInBackground = async () => {
+      try {
+        console.log("Refreshing blogs in background");
+        const data = await getAllBlogs();
+        if (Array.isArray(data)) {
+          setBlogs(data);
+          setFilteredBlogs(prevFiltered => {
+            // Keep the current filter but with updated data
+            if (searchTerm.trim() === "") {
+              return data;
+            } else {
+              return data.filter(blog =>
+                blog.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                blog.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (blog.author_name && blog.author_name.toLowerCase().includes(searchTerm.toLowerCase()))
+              );
+            }
+          });
+
+          // Update cache
+          try {
+            sessionStorage.setItem('cachedBlogs', JSON.stringify(data));
+            sessionStorage.setItem('blogsCacheTimestamp', Date.now().toString());
+          } catch (storageError) {
+            console.error("Error updating cached blogs:", storageError);
+          }
+
+          // Refresh author profiles
+          refreshAuthorProfiles(data).catch(err => {
+            console.error("Error refreshing author profiles:", err);
+          });
+        }
+      } catch (err) {
+        console.error("Error refreshing blogs in background:", err);
+      }
+    };
+
     fetchBlogs();
-  }, []);
+  }, [searchTerm]);
 
   // Effect for updating the date/time display
   useEffect(() => {
@@ -174,7 +359,7 @@ const Home = () => {
   return (
     <div className="bg-blog-bg dark:bg-black min-h-screen transition-all duration-500">
       {/* Full-screen hero section with monochromatic design */}
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-6 sm:pt-10">
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 sm:pt-28">
         {/* Background with subtle pattern */}
         <div className="absolute inset-0 bg-white dark:bg-black">
           <div className="absolute inset-0 opacity-5 dark:opacity-10"
@@ -342,15 +527,39 @@ const Home = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center h-80">
-            <div className="animate-spin rounded-full h-16 w-16 border-3 border-t-transparent border-gray-900 dark:border-white"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 auto-rows-fr">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden h-[24rem] flex flex-col relative animate-pulse">
+                <div className="h-32 w-full bg-gray-300 dark:bg-gray-700"></div>
+                <div className="p-4 flex-grow flex flex-col">
+                  <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                  <div className="flex items-center mb-4">
+                    <div className="h-8 w-8 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                    <div className="ml-2">
+                      <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-24 mb-1"></div>
+                      <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-16"></div>
+                    </div>
+                  </div>
+                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-2/3 mb-4"></div>
+                  <div className="mt-auto flex justify-between items-center">
+                    <div className="flex space-x-2">
+                      <div className="h-8 w-8 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                      <div className="h-8 w-8 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+                    </div>
+                    <div className="h-8 w-24 bg-gray-300 dark:bg-gray-700 rounded-md"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="bg-gray-100 dark:bg-black text-gray-700 dark:text-gray-300 p-8 rounded-md max-w-4xl mx-auto border border-gray-200 dark:border-gray-700 text-lg">
             {error}
           </div>
         ) : filteredBlogs.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 auto-rows-fr">
             {filteredBlogs.map((blog, index) => {
               if (!blog || !blog._id) {
                 console.warn("Blog missing _id:", blog);
@@ -359,7 +568,7 @@ const Home = () => {
               return (
                 <div
                   key={blog._id}
-                  className={`transform transition-all duration-700 ${
+                  className={`transform transition-all duration-700 h-full ${
                     animateBlogs
                       ? 'translate-y-0 opacity-100'
                       : 'translate-y-12 opacity-0'

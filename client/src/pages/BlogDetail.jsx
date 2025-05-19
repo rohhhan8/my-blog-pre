@@ -131,15 +131,15 @@ const BlogDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-gray-900 pt-24 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blog-accent"></div>
+      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-t-transparent border-gray-900 dark:border-white"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-gray-900 pt-24 flex justify-center">
+      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 max-w-lg">
           <h2 className="text-2xl font-bold text-red-500 mb-4">Error</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-6">{error}</p>
@@ -251,7 +251,7 @@ const BlogDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black pt-24 pb-12 relative">
+    <div className="min-h-screen bg-white dark:bg-black pt-20 sm:pt-24 pb-12 relative">
       {/* Share toast notification */}
       {showShareToast && (
         <div className="fixed bottom-4 right-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in">
@@ -259,11 +259,11 @@ const BlogDetail = () => {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Banner Image */}
           {blog.image_url && (
-            <div className="w-full h-64 md:h-96 overflow-hidden">
+            <div className="w-full h-48 sm:h-64 md:h-96 overflow-hidden">
               <img
                 src={blog.image_url}
                 alt={blog.title}
@@ -276,46 +276,48 @@ const BlogDetail = () => {
             </div>
           )}
 
-          <div className="p-6 md:p-10">
+          <div className="p-4 sm:p-6 md:p-10">
             {/* Title */}
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white font-playfair mb-6">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-gray-900 dark:text-white font-playfair mb-4 sm:mb-6">
               {blog.title}
             </h1>
 
             {/* Author and date */}
-            <div className="flex items-center mb-8 border-b border-gray-200 dark:border-gray-700 pb-6">
-              <div className="h-12 w-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 font-medium text-lg">
-                {blog.author?.charAt(0)?.toUpperCase() || 'A'}
-              </div>
-              <div className="ml-4">
-                <p className="text-base font-medium text-gray-900 dark:text-white">
-                  {blog.author_name || blog.author || 'Anonymous'}
-                </p>
-                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
-                  <span>{formattedDate}</span>
-                  <span className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    {viewCount} views
-                  </span>
+            <div className="flex flex-col sm:flex-row sm:items-center mb-6 sm:mb-8 border-b border-gray-200 dark:border-gray-700 pb-4 sm:pb-6 gap-4">
+              <div className="flex items-center">
+                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 font-medium text-lg">
+                  {blog.author?.charAt(0)?.toUpperCase() || 'A'}
+                </div>
+                <div className="ml-3 sm:ml-4">
+                  <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                    {blog.author_name || blog.author || 'Anonymous'}
+                  </p>
+                  <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-x-2 sm:space-x-4">
+                    <span>{formattedDate}</span>
+                    <span className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      {viewCount} views
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="ml-auto flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 sm:ml-auto mt-2 sm:mt-0">
                 {/* Like button */}
                 <button
                   onClick={handleLike}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded-full border ${
+                  className={`flex items-center space-x-1 px-2 sm:px-3 py-1 rounded-full border ${
                     isLiked
                       ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
                       : 'bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900'
-                  } transition-colors`}
+                  } transition-colors text-xs sm:text-sm`}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="h-4 w-4 sm:h-5 sm:w-5"
                     fill={isLiked ? "currentColor" : "none"}
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -328,11 +330,11 @@ const BlogDetail = () => {
                 {/* Share button */}
                 <button
                   onClick={handleShare}
-                  className="flex items-center space-x-1 px-3 py-1 rounded-full border bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                  className="flex items-center space-x-1 px-2 sm:px-3 py-1 rounded-full border bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors text-xs sm:text-sm"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
+                    className="h-4 w-4 sm:h-5 sm:w-5"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -346,7 +348,7 @@ const BlogDetail = () => {
                 {isAuthor && (
                   <Link
                     to={`/edit/${blogId}`}
-                    className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-2 rounded text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                    className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 sm:px-5 py-1 sm:py-2 rounded text-xs sm:text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
                   >
                     Edit Post
                   </Link>
@@ -355,21 +357,21 @@ const BlogDetail = () => {
             </div>
 
             {/* Content */}
-            <article className="prose dark:prose-invert max-w-none prose-lg md:prose-xl">
+            <article className="prose dark:prose-invert max-w-none prose-base sm:prose-lg md:prose-xl">
               {blog.content.split('\n').map((paragraph, index) => (
-                paragraph ? <p key={index} className="mb-6 text-gray-800 dark:text-gray-100">{paragraph}</p> : <br key={index} />
+                paragraph ? <p key={index} className="mb-4 sm:mb-6 text-gray-800 dark:text-gray-100 text-sm sm:text-base md:text-lg">{paragraph}</p> : <br key={index} />
               ))}
             </article>
 
             {/* Back to home button */}
-            <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-6 sm:mt-10 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700">
               <Link
                 to="/"
-                className="inline-flex items-center text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                className="inline-flex items-center text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-sm sm:text-base"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2"
+                  className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

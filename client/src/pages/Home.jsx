@@ -75,7 +75,7 @@ const Home = () => {
   return (
     <div className="bg-blog-bg dark:bg-black min-h-screen transition-all duration-500">
       {/* Full-screen hero section with monochromatic design */}
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-12 sm:pt-16">
         {/* Background with subtle pattern */}
         <div className="absolute inset-0 bg-white dark:bg-black">
           <div className="absolute inset-0 opacity-5 dark:opacity-10"
@@ -98,60 +98,56 @@ const Home = () => {
           <div className="max-w-4xl mx-auto">
             {/* Modern monochromatic typography and animations */}
             <div className="text-center">
-              <div className="mb-6">
-                <div className="inline-flex items-center justify-center w-24 h-24 mb-6">
+              <div className="mb-4 sm:mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-24 sm:h-24 mb-4 sm:mb-6">
                   <div className="relative">
-                    <div className="text-6xl font-black text-gray-900 dark:text-white font-serif tracking-tighter">
+                    <div className="text-4xl sm:text-6xl font-black text-gray-900 dark:text-white font-serif tracking-tighter">
                       B
                     </div>
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-gray-900 dark:bg-white rounded-full"></div>
+                    <div className="absolute -top-1 -right-1 w-2 h-2 sm:w-3 sm:h-3 bg-gray-900 dark:bg-white rounded-full"></div>
                     <div className="absolute -bottom-1 left-0 w-full h-1 bg-gray-900 dark:bg-white"></div>
                   </div>
                 </div>
               </div>
 
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight leading-tight px-2">
+              <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 tracking-tight leading-tight px-2">
                 <span className="block">Share Your Stories</span>
-                <span className="block mt-2">
+                <span className="block mt-1 sm:mt-2">
                   <span className="gradient-text">Express Yourself</span>
                 </span>
               </h1>
 
-              <div className="relative mb-6 md:mb-10">
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-4 md:mb-6 animate-fade-in-up animation-delay-300 leading-relaxed font-light px-2 sm:px-4">
+              <div className="relative mb-3 sm:mb-4 md:mb-6">
+                <p className="text-xs xs:text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-3 sm:mb-4 md:mb-6 animate-fade-in-up animation-delay-300 leading-relaxed font-light px-2 sm:px-4">
                   Words have power. Share your unique perspective, inspire others, and leave your mark on the world through thoughtful storytelling.
                 </p>
               </div>
 
-              {/* Smaller, more subtle date/time display */}
-              <div className="inline-flex flex-col xs:flex-row items-center gap-2 xs:gap-3 mb-4 md:mb-6 animate-fade-in-up animation-delay-500 text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-black/80 px-3 xs:px-4 py-2 rounded-full shadow-sm border border-gray-200 dark:border-gray-800">
-                <div className="flex items-center gap-2">
-                  <svg className="w-3 h-3 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                  </svg>
-                  <span className="text-xs xs:text-sm font-medium">
-                    {currentDateTime.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </span>
-                </div>
-
-                <span className="hidden xs:block w-px h-4 bg-gray-300 dark:bg-gray-700"></span>
-
-                <div className="flex items-center gap-2">
-                  <svg className="w-3 h-3 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <span className="text-xs xs:text-sm font-mono">
-                    {currentDateTime.toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    })}
-                  </span>
+              {/* Search bar moved above date/time display */}
+              <div className="max-w-xs sm:max-w-sm md:max-w-md mx-auto relative mb-4 md:mb-6 animate-fade-in-up animation-delay-400">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search blogs..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 pl-9 pr-9 text-sm sm:text-base rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white shadow-sm"
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -174,6 +170,34 @@ const Home = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </a>
+              </div>
+
+              {/* Date and time display below buttons */}
+              <div className="mt-6 sm:mt-8 flex flex-col xs:flex-row items-center justify-center gap-3 animate-fade-in-up animation-delay-600">
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-black/80 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                  <svg className="w-3 h-3 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                  </svg>
+                  <span className="text-xs xs:text-sm font-medium">
+                    {currentDateTime.toLocaleDateString('en-US', {
+                      day: 'numeric',
+                      month: 'short'
+                    })}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 bg-white/80 dark:bg-black/80 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
+                  <svg className="w-3 h-3 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  <span className="text-xs xs:text-sm font-mono">
+                    {currentDateTime.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -199,53 +223,25 @@ const Home = () => {
       </div>
 
       {/* Blog content section with monochromatic design */}
-      <div id="blogs" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-28 pb-12 sm:pb-16 bg-white dark:bg-black">
-        <div className="text-center mb-8 sm:mb-12">
-          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white font-playfair mb-3 sm:mb-6 tracking-tight px-2">
+      <div id="blogs" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-12 sm:pt-16 md:pt-24 pb-10 sm:pb-16 bg-white dark:bg-black">
+        <div className="text-center mb-6 sm:mb-8 md:mb-12">
+          <h2 className="text-lg xs:text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white font-playfair mb-2 sm:mb-3 md:mb-6 tracking-tight px-2">
             Latest <span className="relative inline-block">
               Blogs
               <span className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-[2px] bg-gray-900 dark:bg-white"></span>
             </span>
           </h2>
-          <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 max-w-2xl mx-auto font-light px-2 sm:px-4 mb-4 sm:mb-6">
+          <p className="text-xs xs:text-sm sm:text-base text-gray-700 dark:text-gray-300 max-w-2xl mx-auto font-light px-2 sm:px-4 mb-3 sm:mb-4 md:mb-6">
             Explore the latest thoughts, ideas, and stories from our community of writers.
           </p>
-
-          {/* Search bar */}
-          <div className="max-w-xs sm:max-w-sm md:max-w-md mx-auto relative">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search blogs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 pl-9 pr-9 text-sm sm:text-base rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white"
-              />
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-t-transparent border-gray-900 dark:border-white"></div>
           </div>
         ) : error ? (
-          <div className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 p-6 rounded-md max-w-3xl mx-auto border border-gray-200 dark:border-gray-700">
+          <div className="bg-gray-100 dark:bg-black text-gray-700 dark:text-gray-300 p-6 rounded-md max-w-3xl mx-auto border border-gray-200 dark:border-gray-700">
             {error}
           </div>
         ) : filteredBlogs.length > 0 ? (

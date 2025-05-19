@@ -20,8 +20,10 @@ const BlogDetail = () => {
 
   // Set share URL when component mounts
   useEffect(() => {
-    setShareUrl(window.location.href);
-  }, []);
+    // Create a consistent URL format for sharing
+    const baseUrl = window.location.origin;
+    setShareUrl(`${baseUrl}/blog/${blogId}`);
+  }, [blogId]);
 
   useEffect(() => {
     const fetchBlog = async () => {

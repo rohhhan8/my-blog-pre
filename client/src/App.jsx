@@ -95,6 +95,9 @@ function App() {
                 <Route path="/blogs/:id" element={<BlogDetail />} />
                 <Route path="/blog/:_id" element={<BlogDetail />} />
                 <Route path="/blogs/:_id" element={<BlogDetail />} />
+                {/* Add a catch-all route for shared links that might have additional parameters */}
+                <Route path="/blog/:id/*" element={<BlogDetail />} />
+                <Route path="/blogs/:id/*" element={<BlogDetail />} />
 
                 <Route
                   path="/create"

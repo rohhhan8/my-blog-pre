@@ -64,6 +64,7 @@ const BlogCard = ({ blog }) => {
     e.stopPropagation(); // Stop event propagation
 
     try {
+      // Ensure we're using a consistent URL format for sharing
       const shareUrl = `${window.location.origin}/blog/${blog._id}`;
 
       if (navigator.share) {
@@ -76,7 +77,18 @@ const BlogCard = ({ blog }) => {
       } else {
         // Fallback to clipboard
         await navigator.clipboard.writeText(shareUrl);
-        alert("Link copied to clipboard!");
+
+        // Use a toast notification instead of an alert
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in';
+        toast.textContent = 'Link copied to clipboard!';
+        document.body.appendChild(toast);
+
+        // Remove the toast after 3 seconds
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+          setTimeout(() => document.body.removeChild(toast), 300);
+        }, 3000);
       }
     } catch (err) {
       console.error("Error sharing:", err);

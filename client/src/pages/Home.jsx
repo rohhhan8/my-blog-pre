@@ -172,13 +172,13 @@ const Home = () => {
                 </a>
               </div>
 
-              {/* Date and time display below buttons */}
-              <div className="mt-6 sm:mt-8 flex flex-col xs:flex-row items-center justify-center gap-3 animate-fade-in-up animation-delay-600">
+              {/* Date and time display below buttons - hidden on mobile */}
+              <div className="mt-6 sm:mt-8 hidden sm:flex flex-row items-center justify-center gap-3 animate-fade-in-up animation-delay-600">
                 <div className="flex items-center gap-2 bg-white/80 dark:bg-black/80 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
-                  <svg className="w-3 h-3 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                   </svg>
-                  <span className="text-xs xs:text-sm font-medium">
+                  <span className="text-sm font-medium">
                     {currentDateTime.toLocaleDateString('en-US', {
                       day: 'numeric',
                       month: 'short'
@@ -187,10 +187,10 @@ const Home = () => {
                 </div>
 
                 <div className="flex items-center gap-2 bg-white/80 dark:bg-black/80 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
-                  <svg className="w-3 h-3 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
-                  <span className="text-xs xs:text-sm font-mono">
+                  <span className="text-sm font-mono">
                     {currentDateTime.toLocaleTimeString('en-US', {
                       hour: '2-digit',
                       minute: '2-digit',

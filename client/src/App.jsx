@@ -12,6 +12,8 @@ import BlogDetail from './pages/BlogDetail';
 import CreateBlog from './pages/CreateBlog';
 import EditBlog from './pages/EditBlog';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import EditProfile from './pages/EditProfile';
 import NotFound from './pages/NotFound';
 import axios from 'axios';
 
@@ -122,6 +124,23 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile/edit"
+                  element={
+                    <ProtectedRoute>
+                      <EditProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/profile/:username" element={<Profile />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </PageTransition>

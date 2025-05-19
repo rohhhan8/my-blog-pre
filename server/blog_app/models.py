@@ -1,5 +1,6 @@
 from djongo import models  # If you use djongo for MongoDB integration
 from django.contrib.auth.models import User
+from .profile_models import Profile
 
 class Blog(models.Model):
     _id = models.ObjectIdField(primary_key=True, editable=False)  # MongoDB ObjectId

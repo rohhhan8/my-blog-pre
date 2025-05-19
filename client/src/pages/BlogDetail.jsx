@@ -340,13 +340,69 @@ const BlogDetail = () => {
             {/* Author and date */}
             <div className="flex flex-col sm:flex-row sm:items-center mb-6 sm:mb-8 border-b border-gray-200 dark:border-gray-700 pb-4 sm:pb-6 gap-4">
               <div className="flex items-center">
-                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 font-medium text-lg">
-                  {blog.author?.charAt(0)?.toUpperCase() || 'A'}
-                </div>
+                {/* Author avatar with link to profile */}
+                <Link
+                  to={`/profile/${encodeURIComponent(blog.author_name || blog.author || 'anonymous')}`}
+                  className="block"
+                  onClick={(e) => {
+                    // Log the author info for debugging
+                    console.log('Author info:', {
+                      author: blog.author,
+                      author_name: blog.author_name,
+                      author_id: blog.author_id
+                    });
+
+                    // Prevent navigation if author is anonymous
+                    if ((blog.author_name || blog.author) === 'anonymous') {
+                      e.preventDefault();
+                      alert('This author does not have a profile');
+                    }
+
+                    // Store the author info in localStorage to help with profile lookup
+                    if (blog.author_name || blog.author) {
+                      localStorage.setItem('lastViewedAuthor', JSON.stringify({
+                        username: blog.author_name || blog.author,
+                        display_name: blog.author_name || blog.author,
+                        timestamp: new Date().toISOString()
+                      }));
+                    }
+                  }}
+                >
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 font-medium text-lg hover:shadow-md transition-shadow">
+                    {blog.author?.charAt(0)?.toUpperCase() || blog.author_name?.charAt(0)?.toUpperCase() || 'A'}
+                  </div>
+                </Link>
                 <div className="ml-3 sm:ml-4">
-                  <p className="text-sm sm:text-base font-medium text-gray-900 dark:text-white">
+                  {/* Author name with link to profile */}
+                  <Link
+                    to={`/profile/${encodeURIComponent(blog.author_name || blog.author || 'anonymous')}`}
+                    className="text-sm sm:text-base font-medium text-gray-900 dark:text-white hover:underline"
+                    onClick={(e) => {
+                      // Log the author info for debugging
+                      console.log('Author info (from name link):', {
+                        author: blog.author,
+                        author_name: blog.author_name,
+                        author_id: blog.author_id
+                      });
+
+                      // Prevent navigation if author is anonymous
+                      if ((blog.author_name || blog.author) === 'anonymous') {
+                        e.preventDefault();
+                        alert('This author does not have a profile');
+                      }
+
+                      // Store the author info in localStorage to help with profile lookup
+                      if (blog.author_name || blog.author) {
+                        localStorage.setItem('lastViewedAuthor', JSON.stringify({
+                          username: blog.author_name || blog.author,
+                          display_name: blog.author_name || blog.author,
+                          timestamp: new Date().toISOString()
+                        }));
+                      }
+                    }}
+                  >
                     {blog.author_name || blog.author || 'Anonymous'}
-                  </p>
+                  </Link>
                   <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-x-2 sm:space-x-4">
                     <span>{formattedDate}</span>
                     <span className="flex items-center">

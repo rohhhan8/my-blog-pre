@@ -74,4 +74,39 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             print(f"Firebase authentication error: {str(e)}")
             import traceback
             traceback.print_exc()
+
+            # Check if this is a clock skew error
+            if "Token used too early" in str(e) and settings.DEBUG:
+                # In development mode, try to extract user info from the token without verification
+                try:
+                    # If we have decoded_token from the fallback mechanism
+                    if 'decoded_token' in locals() and decoded_token:
+                        uid = decoded_token.get('uid') or decoded_token.get('user_id') or decoded_token.get('sub')
+                        email = decoded_token.get('email', '')
+                        display_name = decoded_token.get('name', '') or decoded_token.get('display_name', '')
+
+                        print(f"DEBUG MODE: Using unverified token data for user: {uid}")
+
+                        # Create or update the user
+                        user, created = User.objects.get_or_create(
+                            username=uid,
+                            defaults={
+                                'email': email,
+                                'first_name': display_name
+                            }
+                        )
+
+                        if created:
+                            print(f"Created new user with uid: {uid} (from unverified token)")
+                        else:
+                            print(f"Found existing user with uid: {uid} (from unverified token)")
+
+                        # Add a warning to the request to indicate this is an unverified token
+                        request.auth_warning = "Using unverified token due to clock skew issue"
+
+                        return (user, None)
+                except Exception as fallback_error:
+                    print(f"Fallback authentication failed: {str(fallback_error)}")
+
+            # For production or if fallback fails, raise the authentication error
             raise exceptions.AuthenticationFailed(f'Invalid token: {str(e)}')

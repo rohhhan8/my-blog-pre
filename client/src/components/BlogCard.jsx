@@ -27,7 +27,29 @@ const BlogCard = ({ blog }) => {
     // First, remove any line breaks to get a clean paragraph
     const cleanContent = content.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
 
-    // Then truncate
+    // For longer content (blogs without images), try to end at a sentence or punctuation
+    if (maxLength > 200 && cleanContent.length > maxLength) {
+      // Try to find a sentence end (period, question mark, exclamation point) near the maxLength
+      const punctuationRegex = /[.!?]/g;
+      const matches = [...cleanContent.matchAll(punctuationRegex)];
+
+      // Find the last punctuation before maxLength
+      let lastPunctIndex = -1;
+      for (const match of matches) {
+        if (match.index <= maxLength) {
+          lastPunctIndex = match.index;
+        } else {
+          break;
+        }
+      }
+
+      // If we found a punctuation mark, use it as the end point
+      if (lastPunctIndex > 0) {
+        return cleanContent.substring(0, lastPunctIndex + 1) + '...';
+      }
+    }
+
+    // Default truncation
     return cleanContent.length <= maxLength
       ? cleanContent
       : cleanContent.substring(0, maxLength) + '...';
@@ -140,9 +162,9 @@ const BlogCard = ({ blog }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-black rounded-lg border border-gray-200 dark:border-gray-400 overflow-hidden transition-all duration-300 hover:shadow-blog-card-light-hover dark:hover:shadow-blog-card-dark-hover hover:border-gray-300 dark:hover:border-gray-300 hover:transform hover:scale-[1.02] hover:-translate-y-1 h-[32rem]">
-      <div className="flex flex-col h-full">
-        {/* Image if available, otherwise show color accent */}
+    <div className="bg-white dark:bg-black rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-lg dark:hover:shadow-gray-700/30 hover:border-gray-300 dark:hover:border-gray-500 hover:transform hover:scale-[1.02] hover:-translate-y-1 h-[32rem] flex flex-col relative">
+      <div className="flex flex-col h-full w-full">
+        {/* Image if available, otherwise show a decorative header with title overlay */}
         <Link to={`/blog/${blog._id}`} className="block">
           {blog.image_url ? (
             <div className="h-40 w-full overflow-hidden">
@@ -153,30 +175,56 @@ const BlogCard = ({ blog }) => {
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.style.display = 'none';
-                  // Show the color accent as fallback
-                  const accentDiv = document.createElement('div');
-                  accentDiv.className = 'h-1 w-full rounded-full';
-                  accentDiv.style.backgroundColor = getBlogColor();
-                  e.target.parentNode.appendChild(accentDiv);
+                  // Create a decorative header with blog title
+                  const headerDiv = document.createElement('div');
+                  headerDiv.className = 'h-40 w-full flex items-center justify-center p-4 relative';
+                  headerDiv.style.backgroundColor = getBlogColor();
+
+                  // Add a pattern overlay for visual interest
+                  const patternDiv = document.createElement('div');
+                  patternDiv.className = 'absolute inset-0 opacity-10';
+                  patternDiv.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E")';
+                  headerDiv.appendChild(patternDiv);
+
+                  // Add the title
+                  const titleDiv = document.createElement('div');
+                  titleDiv.className = 'text-white text-xl font-bold text-center z-10 font-playfair';
+                  titleDiv.textContent = blog.title;
+                  headerDiv.appendChild(titleDiv);
+
+                  e.target.parentNode.appendChild(headerDiv);
                 }}
               />
             </div>
           ) : (
             <div
-              className="h-1 w-full rounded-full"
+              className="h-40 w-full flex items-center justify-center p-4 relative"
               style={{ backgroundColor: getBlogColor() }}
-            ></div>
+            >
+              {/* Pattern overlay for visual interest */}
+              <div className="absolute inset-0 opacity-10"
+                style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E")'}}
+              ></div>
+
+              {/* Title overlay */}
+              <h2 className="text-white text-xl font-bold text-center z-10 font-playfair line-clamp-3">
+                {blog.title}
+              </h2>
+            </div>
           )}
         </Link>
 
-        <div className="p-6 flex-grow flex flex-col justify-between">
-          <div className="flex flex-col h-full">
-            <Link to={`/blog/${blog._id}`} className="block mb-auto">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white font-playfair mb-3 line-clamp-2 h-14">
-                {blog.title}
-              </h2>
+        <div className="px-5 py-4 flex-grow flex flex-col justify-between">
+          <div className="flex flex-col h-full justify-between">
+            <Link to={`/blog/${blog._id}`} className="block mb-auto overflow-hidden">
+              {/* Only show title here if we don't have it in the header (when there's an image) */}
+              {blog.image_url && (
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white font-playfair mb-2 line-clamp-2 h-12">
+                  {blog.title}
+                </h2>
+              )}
 
-              <div className="flex items-center mb-4">
+              <div className="flex items-center mb-3">
                 <div
                   className="h-8 w-8 rounded-full flex items-center justify-center text-white font-medium border border-gray-200 dark:border-gray-400"
                   style={{ backgroundColor: getBlogColor() }}
@@ -195,75 +243,110 @@ const BlogCard = ({ blog }) => {
                 </div>
               </div>
 
-              <div className="text-gray-700 dark:text-gray-200 text-sm line-clamp-3 mb-4 h-16">
-                {truncateContent(blog.content, 120)}
+              {/* Expanded content preview for blogs without images */}
+              <div className={`text-gray-700 dark:text-gray-200 text-sm overflow-hidden ${blog.image_url ? 'line-clamp-4 mb-3' : 'line-clamp-9 mb-3'}`} style={{ maxHeight: blog.image_url ? '5rem' : '13rem' }}>
+                {truncateContent(blog.content, blog.image_url ? 180 : 450)}
               </div>
+
+              {/* Add tags if available */}
+              {blog.tags && blog.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {blog.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-xs"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </Link>
 
             {/* Stats and actions - fixed at bottom */}
-            <div className="flex flex-col space-y-3 mt-auto">
-              {/* Stats row */}
-              <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                <div className="flex items-center space-x-4">
-                  {/* Views */}
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    <span>{viewCount}</span>
-                  </div>
+            <div className="flex flex-col space-y-2 mt-auto">
+              {/* Stats and actions in a more visually appealing layout */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-1">
+                {/* Stats row with improved styling */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-3">
+                    {/* Views with improved styling */}
+                    <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{viewCount}</span>
+                    </div>
 
-                  {/* Likes */}
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                    <span>{likeCount}</span>
+                    {/* Likes with improved styling */}
+                    <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 mr-1 ${isLiked ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`} fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{likeCount}</span>
+                    </div>
+
+                    {/* Reading time estimate (new feature) */}
+                    <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {Math.max(1, Math.ceil(blog.content.split(' ').length / 200))} min
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Actions row */}
-              <div className="flex items-center justify-between">
-                <div className="flex space-x-2">
-                  {/* Like button */}
-                  <button
-                    onClick={handleLike}
-                    className={`p-1.5 rounded-full border ${
-                      isLiked
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
-                        : 'bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700'
-                    }`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
+                {/* Actions row with improved styling */}
+                <div className="flex items-center justify-between">
+                  <div className="flex space-x-2">
+                    {/* Like button with improved styling */}
+                    <button
+                      onClick={handleLike}
+                      className={`p-2 rounded-full transition-all duration-300 ${
+                        isLiked
+                          ? 'bg-red-50 dark:bg-red-900/30 text-red-500 border border-red-200 dark:border-red-700'
+                          : 'bg-white dark:bg-black text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
+                      aria-label={isLiked ? "Unlike this post" : "Like this post"}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
+                    </button>
 
-                  {/* Share button */}
-                  <button
-                    onClick={handleShare}
-                    className="p-1.5 rounded-full border bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700"
+                    {/* Share button with improved styling */}
+                    <button
+                      onClick={handleShare}
+                      className="p-2 rounded-full bg-white dark:bg-black text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300"
+                      aria-label="Share this post"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Read More button with improved styling */}
+                  <Link
+                    to={`/blog/${blog._id}`}
+                    className="inline-flex items-center px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-md text-sm font-medium transition-all duration-300 hover:bg-gray-800 dark:hover:bg-gray-100 group shadow-sm"
+                    aria-label="Read the full article"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    Read More
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
-                  </button>
+                  </Link>
                 </div>
-
-                <Link to={`/blog/${blog._id}`} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-300 text-gray-900 dark:text-white rounded-md text-sm font-medium transition-all duration-300 hover:bg-gray-900 hover:text-white hover:border-gray-900 dark:hover:bg-white dark:hover:text-gray-900 dark:hover:border-white group">
-                  Read More
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 ml-2 transform transition-transform duration-300 group-hover:translate-x-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </Link>
               </div>
             </div>
           </div>

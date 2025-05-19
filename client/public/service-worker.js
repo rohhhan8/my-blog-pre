@@ -1,8 +1,8 @@
 // Service Worker for BlogHub PWA
 
-const CACHE_NAME = 'moodblog-cache-v1';
-const STATIC_CACHE_NAME = 'moodblog-static-v1';
-const API_CACHE_NAME = 'moodblog-api-v1';
+const CACHE_NAME = 'bloghub-cache-v2';
+const STATIC_CACHE_NAME = 'bloghub-static-v2';
+const API_CACHE_NAME = 'bloghub-api-v2';
 
 // Assets to cache immediately during installation
 const STATIC_ASSETS = [

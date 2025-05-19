@@ -187,7 +187,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",
     "http://localhost:3000",  # In case you're using a different port
-    "https://moodblog.vercel.app",  # Your Vercel frontend URL
+    "https://my-blog-pre01.vercel.app",  # Your Vercel frontend URL
 ]
 
 # Add production frontend URL if available and not already in the list

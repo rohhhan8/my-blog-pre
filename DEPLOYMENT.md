@@ -32,7 +32,7 @@ This guide explains how to deploy the blog application to Render (backend) and V
    SECRET_KEY=your-secure-secret-key
    DEBUG=False
    ALLOWED_HOST=my-blog-pre.onrender.com
-   FRONTEND_URL=https://moodblog.vercel.app
+   FRONTEND_URL=https://my-blog-pre01.vercel.app
    CORS_ALLOW_ALL=False
 
    # If using MongoDB Atlas
@@ -136,7 +136,7 @@ fetch(`${config.API_URL}/api/posts/`)
    - Visit `https://my-blog-pre.onrender.com/api/posts/` to verify the API is working
 
 2. **Test the frontend**:
-   - Visit `https://moodblog.vercel.app` and ensure it can communicate with the backend
+   - Visit `https://my-blog-pre01.vercel.app` and ensure it can communicate with the backend
    - Test all functionality: authentication, creating posts, etc.
 
 ## Troubleshooting

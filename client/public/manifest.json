@@ -1,6 +1,6 @@
 {
-  "name": "MoodBlog",
-  "short_name": "MoodBlog",
+  "name": "BlogHub",
+  "short_name": "BlogHub",
   "description": "A modern blogging platform",
   "start_url": "/",
   "display": "standalone",

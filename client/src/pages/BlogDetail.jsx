@@ -243,6 +243,9 @@ const BlogDetail = () => {
 
       console.log("Sharing URL:", shareUrl);
 
+      // Store the blog ID in localStorage to help with redirection
+      localStorage.setItem('lastSharedBlogId', blogId);
+
       if (navigator.share) {
         // Use Web Share API if available
         await navigator.share({
@@ -255,7 +258,7 @@ const BlogDetail = () => {
         // Fallback to clipboard
         await navigator.clipboard.writeText(shareUrl);
         setShowShareToast(true);
-        setTimeout(() => setShowShareToast(false), 3000);
+        setTimeout(() => setShowShareToast(false), 5000);
         console.log("Copied to clipboard:", shareUrl);
       }
     } catch (err) {

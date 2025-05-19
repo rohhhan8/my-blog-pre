@@ -13,18 +13,42 @@ const NotFound = () => {
     const path = location.pathname;
     console.log("404 page loaded with path:", path);
 
+    // First, check if we have a lastSharedBlogId in localStorage
+    const lastSharedBlogId = localStorage.getItem('lastSharedBlogId');
+
     // Check if this is a shared blog link
     const blogIdMatch = path.match(/\/blog[s]?\/([a-zA-Z0-9]+)/);
 
     // Check if we're already in a redirection process (to prevent loops)
     const isRedirectLoop = sessionStorage.getItem('redirectAttempt');
+    const redirectCount = parseInt(sessionStorage.getItem('redirectCount') || '0');
 
-    if (blogIdMatch && blogIdMatch[1] && !isRedirectLoop) {
-      const blogId = blogIdMatch[1];
+    // If we've tried redirecting too many times, stop trying
+    if (redirectCount > 3) {
+      console.log("Too many redirect attempts, showing normal 404");
+      sessionStorage.removeItem('redirectAttempt');
+      sessionStorage.removeItem('redirectCount');
+      return;
+    }
+
+    // Try to extract blog ID from various sources
+    let blogId = null;
+
+    // First priority: extract from URL
+    if (blogIdMatch && blogIdMatch[1]) {
+      blogId = blogIdMatch[1];
       console.log("Found blog ID in URL:", blogId);
+    }
+    // Second priority: use lastSharedBlogId from localStorage
+    else if (lastSharedBlogId) {
+      blogId = lastSharedBlogId;
+      console.log("Using last shared blog ID from localStorage:", blogId);
+    }
 
+    if (blogId && !isRedirectLoop) {
       // Set a flag in session storage to prevent redirect loops
       sessionStorage.setItem('redirectAttempt', 'true');
+      sessionStorage.setItem('redirectCount', (redirectCount + 1).toString());
 
       // Clean the URL to ensure it's in the correct format
       const cleanUrl = `/blog/${blogId}`;
@@ -38,7 +62,8 @@ const NotFound = () => {
           if (prev <= 1) {
             clearInterval(timer);
             // Redirect to the blog page with the clean URL
-            window.location.href = cleanUrl; // Use direct location change instead of navigate
+            // Use direct location change with replace to avoid adding to history
+            window.location.replace(cleanUrl);
             return 0;
           }
           return prev - 1;
@@ -50,6 +75,7 @@ const NotFound = () => {
       // If we're in a redirect loop, clear the flag and show normal 404
       console.log("Detected redirect loop, showing normal 404");
       sessionStorage.removeItem('redirectAttempt');
+      // Don't clear redirectCount to keep track of attempts
     }
   }, [location]);
 

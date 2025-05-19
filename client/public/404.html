@@ -93,14 +93,26 @@
       return match && match[1] ? match[1] : null;
     }
 
+    // Get last shared blog ID from localStorage
+    function getLastSharedBlogId() {
+      return localStorage.getItem('lastSharedBlogId');
+    }
+
     // Check if we're in a redirect loop
     function isInRedirectLoop() {
       return sessionStorage.getItem('redirectAttempt') === 'true';
     }
 
+    // Get redirect count
+    function getRedirectCount() {
+      return parseInt(sessionStorage.getItem('redirectCount') || '0');
+    }
+
     // Set redirect attempt flag
     function setRedirectAttempt() {
       sessionStorage.setItem('redirectAttempt', 'true');
+      const count = getRedirectCount();
+      sessionStorage.setItem('redirectCount', (count + 1).toString());
     }
 
     // Clear redirect attempt flag
@@ -110,12 +122,39 @@
 
     // Redirect to the correct URL
     function redirectToBlog() {
-      const blogId = getBlogIdFromUrl();
+      // If we've tried redirecting too many times, stop trying
+      if (getRedirectCount() > 3) {
+        clearRedirectAttempt();
+        sessionStorage.removeItem('redirectCount');
+        document.getElementById('message').textContent = 'Too many redirect attempts. Please try again from the home page.';
+        document.getElementById('countdown').textContent = 'Redirecting to home page...';
+
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 3000);
+        return;
+      }
+
+      // Try to get blog ID from URL first
+      let blogId = getBlogIdFromUrl();
+
+      // If not found in URL, try localStorage
+      if (!blogId) {
+        blogId = getLastSharedBlogId();
+        console.log("Using last shared blog ID from localStorage:", blogId);
+      }
+
       if (blogId && !isInRedirectLoop()) {
         setRedirectAttempt();
         // Use the absolute path with origin to ensure we're going to the right place
         const cleanUrl = `${window.location.origin}/blog/${blogId}`;
         console.log("Redirecting to:", cleanUrl);
+
+        // Update the blog link href
+        const blogLink = document.getElementById('blog-link');
+        if (blogLink) {
+          blogLink.href = cleanUrl;
+        }
 
         // Use replace instead of href to avoid adding to browser history
         window.location.replace(cleanUrl);
@@ -130,7 +169,13 @@
         }, 3000);
       } else {
         // No blog ID found, go to home
-        window.location.replace('/');
+        document.getElementById('message').textContent = 'No blog ID found. Redirecting to home page...';
+        document.getElementById('countdown').textContent = 'Redirecting in 3 seconds...';
+        document.getElementById('blog-link').style.display = 'none';
+
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 3000);
       }
     }
 

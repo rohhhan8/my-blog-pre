@@ -22,7 +22,10 @@ const BlogDetail = () => {
   useEffect(() => {
     // Create a consistent URL format for sharing
     const baseUrl = window.location.origin;
-    setShareUrl(`${baseUrl}/blog/${blogId}`);
+    // Use a clean URL format without any query parameters or hash
+    const cleanShareUrl = `${baseUrl}/blog/${blogId}`;
+    console.log("Setting share URL:", cleanShareUrl);
+    setShareUrl(cleanShareUrl);
   }, [blogId]);
 
   useEffect(() => {
@@ -197,6 +200,14 @@ const BlogDetail = () => {
   // Handle share
   const handleShare = async () => {
     try {
+      // Ensure we have a valid URL to share
+      if (!shareUrl) {
+        const baseUrl = window.location.origin;
+        setShareUrl(`${baseUrl}/blog/${blogId}`);
+      }
+
+      console.log("Sharing URL:", shareUrl);
+
       if (navigator.share) {
         // Use Web Share API if available
         await navigator.share({
@@ -204,14 +215,18 @@ const BlogDetail = () => {
           text: `Check out this blog post: ${blog.title}`,
           url: shareUrl,
         });
+        console.log("Shared successfully using Web Share API");
       } else {
         // Fallback to clipboard
         await navigator.clipboard.writeText(shareUrl);
         setShowShareToast(true);
         setTimeout(() => setShowShareToast(false), 3000);
+        console.log("Copied to clipboard:", shareUrl);
       }
     } catch (err) {
       console.error("Error sharing:", err);
+      // Show error toast
+      alert(`Error sharing: ${err.message}`);
     }
   };
 

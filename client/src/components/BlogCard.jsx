@@ -66,6 +66,7 @@ const BlogCard = ({ blog }) => {
     try {
       // Ensure we're using a consistent URL format for sharing
       const shareUrl = `${window.location.origin}/blog/${blog._id}`;
+      console.log("Sharing URL from BlogCard:", shareUrl);
 
       if (navigator.share) {
         // Use Web Share API if available
@@ -74,9 +75,11 @@ const BlogCard = ({ blog }) => {
           text: `Check out this blog post: ${blog.title}`,
           url: shareUrl,
         });
+        console.log("Shared successfully using Web Share API");
       } else {
         // Fallback to clipboard
         await navigator.clipboard.writeText(shareUrl);
+        console.log("Copied to clipboard:", shareUrl);
 
         // Use a toast notification instead of an alert
         const toast = document.createElement('div');
@@ -87,11 +90,30 @@ const BlogCard = ({ blog }) => {
         // Remove the toast after 3 seconds
         setTimeout(() => {
           toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
-          setTimeout(() => document.body.removeChild(toast), 300);
+          setTimeout(() => {
+            if (document.body.contains(toast)) {
+              document.body.removeChild(toast);
+            }
+          }, 300);
         }, 3000);
       }
     } catch (err) {
       console.error("Error sharing:", err);
+      // Show error toast
+      const errorToast = document.createElement('div');
+      errorToast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in';
+      errorToast.textContent = `Error sharing: ${err.message}`;
+      document.body.appendChild(errorToast);
+
+      // Remove the error toast after 5 seconds
+      setTimeout(() => {
+        errorToast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+        setTimeout(() => {
+          if (document.body.contains(errorToast)) {
+            document.body.removeChild(errorToast);
+          }
+        }, 300);
+      }, 5000);
     }
   };
 

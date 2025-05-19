@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecting...</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f7f7f7;
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      max-width: 600px;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      margin-top: 0;
+      color: #333;
+    }
+    .progress-container {
+      width: 100%;
+      height: 8px;
+      background-color: #e0e0e0;
+      border-radius: 4px;
+      margin: 1.5rem 0;
+    }
+    .progress-bar {
+      height: 100%;
+      background-color: #4a90e2;
+      border-radius: 4px;
+      transition: width 1s linear;
+    }
+    .button {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background-color: #4a90e2;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: 500;
+      margin-top: 1rem;
+      transition: background-color 0.2s;
+    }
+    .button:hover {
+      background-color: #3a7bc8;
+    }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+      .container {
+        background-color: #1e1e1e;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+      h1 {
+        color: #e0e0e0;
+      }
+      .progress-container {
+        background-color: #333;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Redirecting you to the correct page</h1>
+    <p id="message">We detected a shared blog link. Redirecting you to the correct page...</p>
+    <p id="countdown">Redirecting in 5 seconds</p>
+    <div class="progress-container">
+      <div id="progress-bar" class="progress-bar" style="width: 100%;"></div>
+    </div>
+    <a id="home-link" href="/" class="button">Go to Home Page</a>
+    <a id="blog-link" href="/" class="button" style="margin-left: 10px; background-color: #333;">Go to Blog Now</a>
+  </div>
+
+  <script>
+    // Extract blog ID from URL
+    function getBlogIdFromUrl() {
+      const path = window.location.pathname;
+      const match = path.match(/\/blog[s]?\/([a-zA-Z0-9]+)/);
+      return match && match[1] ? match[1] : null;
+    }
+
+    // Redirect to the correct URL
+    function redirectToBlog() {
+      const blogId = getBlogIdFromUrl();
+      if (blogId) {
+        const cleanUrl = `${window.location.origin}/blog/${blogId}`;
+        window.location.href = cleanUrl;
+      } else {
+        window.location.href = '/';
+      }
+    }
+
+    // Set up countdown and progress bar
+    function setupRedirect() {
+      const blogId = getBlogIdFromUrl();
+      let countdown = 5;
+      
+      if (blogId) {
+        // Update blog link
+        const blogLink = document.getElementById('blog-link');
+        blogLink.href = `/blog/${blogId}`;
+        
+        // Start countdown
+        const countdownEl = document.getElementById('countdown');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const timer = setInterval(() => {
+          countdown--;
+          countdownEl.textContent = `Redirecting in ${countdown} seconds`;
+          progressBar.style.width = `${(countdown / 5) * 100}%`;
+          
+          if (countdown <= 0) {
+            clearInterval(timer);
+            redirectToBlog();
+          }
+        }, 1000);
+      } else {
+        // No blog ID found, show different message
+        document.getElementById('message').textContent = 'Page not found. Redirecting to home page...';
+        document.getElementById('blog-link').style.display = 'none';
+        
+        // Redirect to home after 5 seconds
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 5000);
+      }
+    }
+
+    // Run when page loads
+    window.onload = setupRedirect;
+  </script>
+</body>
+</html>

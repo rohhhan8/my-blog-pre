@@ -3,5 +3,15 @@
   "outputDirectory": "client/dist",
   "devCommand": "cd client && npm run dev",
   "installCommand": "cd client && npm install",
-  "framework": "vite"
+  "framework": "vite",
+  "routes": [
+    { "src": "/blog/.*", "dest": "/index.html" },
+    { "src": "/blogs/.*", "dest": "/index.html" },
+    { "src": "/login", "dest": "/index.html" },
+    { "src": "/signup", "dest": "/index.html" },
+    { "src": "/dashboard", "dest": "/index.html" },
+    { "src": "/create", "dest": "/index.html" },
+    { "src": "/edit/.*", "dest": "/index.html" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
 }

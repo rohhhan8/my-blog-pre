@@ -7,7 +7,7 @@ console.log('API Service Base URL:', apiURL);
 
 const api = axios.create({
   baseURL: apiURL,
-  timeout: 8000, // Reduced timeout for faster response
+  timeout: 15000, // Increased timeout for slower connections
   headers: {
     'Content-Type': 'application/json',
   }

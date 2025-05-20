@@ -3,8 +3,11 @@ import { useLocation } from 'react-router-dom';
 
 const PageLoader = () => {
   return (
-    <div className="fixed inset-0 bg-white/95 dark:bg-black/95 backdrop-blur-md flex items-center justify-center z-40 transition-all duration-300">
-      <div className="flex flex-col items-center">
+    <div className="fixed inset-0 bg-white dark:bg-black flex items-center justify-center z-[9999] transition-all duration-300">
+      {/* Overlay to prevent any clicks during loading */}
+      <div className="absolute inset-0 bg-white dark:bg-black opacity-100"></div>
+
+      <div className="flex flex-col items-center relative z-10">
         <div className="relative transform transition-all duration-500 animate-float">
           {/* Simple B logo with minimal animation */}
           <div className="relative">
@@ -18,8 +21,13 @@ const PageLoader = () => {
         </div>
 
         {/* Loading indicator */}
-        <div className="mt-6 w-16 h-0.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div className="mt-6 w-24 h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
           <div className="h-full bg-gray-900 dark:bg-white loading-progress-bar"></div>
+        </div>
+
+        {/* Loading text */}
+        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          Loading...
         </div>
       </div>
     </div>
@@ -32,10 +40,16 @@ const PageTransition = ({ children }) => {
   const [transitionStage, setTransitionStage] = useState('page-slide-in');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Scroll to top when location changes
+  // Scroll to top when location changes, but only after the transition is complete
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+    // Only scroll to top when the page is fully loaded and transition is complete
+    if (!isLoading && transitionStage === 'page-slide-in-active') {
+      window.scrollTo({
+        top: 0,
+        behavior: 'auto' // Use 'auto' instead of 'smooth' to prevent visual issues
+      });
+    }
+  }, [isLoading, transitionStage, location.pathname]);
 
   useEffect(() => {
     if (location !== displayLocation) {
@@ -67,12 +81,18 @@ const PageTransition = ({ children }) => {
 
           // Only hide the loader after the content has started to appear and resources are preloaded
           const hideLoader = setTimeout(() => {
-            setIsLoading(false);
-          }, 500); // Increased to 500ms for smoother transition
+            // Dispatch a custom event to signal that we're about to show content
+            window.dispatchEvent(new CustomEvent('pageContentReady'));
+
+            // Set a small delay before actually hiding the loader
+            setTimeout(() => {
+              setIsLoading(false);
+            }, 100);
+          }, 300); // Reduced timing for better responsiveness
 
           return () => clearTimeout(hideLoader);
-        }, 500); // Increased to 500ms to ensure content is ready
-      }, 400); // Slightly longer transition timing for better animation
+        }, 300); // Reduced timing for better responsiveness
+      }, 300); // Reduced timing for better responsiveness
 
       return () => clearTimeout(timeout);
     }
@@ -88,7 +108,14 @@ const PageTransition = ({ children }) => {
   return (
     <>
       {isLoading && <PageLoader />}
-      <div className={`page-transition ${transitionStage} transition-all duration-500`}>
+      <div
+        className={`page-transition ${transitionStage} transition-all duration-500`}
+        style={{
+          visibility: isLoading ? 'hidden' : 'visible',
+          position: 'relative',
+          zIndex: isLoading ? -1 : 1
+        }}
+      >
         {children}
       </div>
     </>

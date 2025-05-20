@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
@@ -17,6 +17,46 @@ const CreateBlog = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+
+  // Check for pending blog data on component mount
+  useEffect(() => {
+    try {
+      const pendingData = localStorage.getItem('pendingBlogData');
+      if (pendingData) {
+        const blogData = JSON.parse(pendingData);
+
+        // Check if the data is recent (less than 1 hour old)
+        const timestamp = new Date(blogData.timestamp);
+        const now = new Date();
+        const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+        if (timestamp > hourAgo) {
+          // Ask user if they want to restore the data
+          const shouldRestore = window.confirm(
+            "We found a draft of a blog post you were creating. Would you like to restore it?"
+          );
+
+          if (shouldRestore) {
+            setTitle(blogData.title || "");
+            setContent(blogData.content || "");
+            setImageUrl(blogData.imageUrl || "");
+            setSuccess("Your draft has been restored. Continue editing and submit when ready.");
+          } else {
+            // User declined, remove the pending data
+            localStorage.removeItem('pendingBlogData');
+          }
+        } else {
+          // Data is too old, remove it
+          localStorage.removeItem('pendingBlogData');
+        }
+      }
+    } catch (error) {
+      console.error("Error checking for pending blog data:", error);
+      // If there's an error, remove the potentially corrupted data
+      localStorage.removeItem('pendingBlogData');
+    }
+  }, []);
 
   // Handle file selection
   const handleFileChange = (e) => {
@@ -88,6 +128,15 @@ const CreateBlog = () => {
     setLoading(true);
 
     try {
+      // Store blog data in localStorage as a backup in case of navigation or refresh
+      const blogData = {
+        title,
+        content,
+        imageUrl,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem('pendingBlogData', JSON.stringify(blogData));
+
       const idToken = await currentUser.getIdToken();
 
       // Make sure we're using the correct API endpoint
@@ -108,27 +157,65 @@ const CreateBlog = () => {
         }
       }
 
-      // Create the blog post
-      const response = await axios.post(
-        backendUrl,
-        {
-          title,
-          content,
-          image_url: finalImageUrl?.trim() || null
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${idToken}`,
+      // Create the blog post with a timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+
+      try {
+        // Create the blog post
+        const response = await axios.post(
+          backendUrl,
+          {
+            title,
+            content,
+            image_url: finalImageUrl?.trim() || null
           },
+          {
+            headers: {
+              Authorization: `Bearer ${idToken}`,
+            },
+            signal: controller.signal
+          }
+        );
+
+        clearTimeout(timeoutId);
+
+        const newBlogId = response.data._id || response.data.id;
+        if (!newBlogId) {
+          throw new Error("No blog ID returned from server");
         }
-      );
 
-      const newBlogId = response.data._id || response.data.id;
-      if (!newBlogId) {
-        throw new Error("No blog ID returned from server");
+        // Clear the pending blog data since it was successfully created
+        localStorage.removeItem('pendingBlogData');
+
+        // Show success message before navigating
+        setError("");
+        setLoading(false);
+
+        // Navigate to the new blog post with a small delay to show success state
+        setTimeout(() => {
+          navigate(`/blog/${newBlogId}`);
+        }, 500);
+
+        return; // Exit early to prevent the finally block from running
+      } catch (postError) {
+        clearTimeout(timeoutId);
+
+        // If it's an abort error (timeout), provide a more helpful message
+        if (postError.name === 'AbortError' || postError.code === 'ECONNABORTED') {
+          console.log("Blog creation is taking longer than expected, but may still succeed in the background.");
+          setError("Blog creation is taking longer than expected. Your blog may still be created in the background. Please check your dashboard in a few moments.");
+
+          // Don't remove pendingBlogData yet
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 3000);
+
+          return; // Exit early
+        }
+
+        throw postError; // Re-throw for the outer catch block
       }
-
-      navigate(`/blog/${newBlogId}`);
     } catch (err) {
       console.error("Failed to create blog:", err);
       if (axios.isAxiosError(err)) {
@@ -157,8 +244,14 @@ const CreateBlog = () => {
             </h1>
 
             {error && (
-              <div className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 p-3 rounded-md mb-6 text-sm border border-gray-200 dark:border-gray-700">
+              <div className="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-3 rounded-md mb-6 text-sm border border-red-100 dark:border-red-800/30">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 p-3 rounded-md mb-6 text-sm border border-green-100 dark:border-green-800/30">
+                {success}
               </div>
             )}
 

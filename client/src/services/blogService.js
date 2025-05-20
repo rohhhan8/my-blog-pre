@@ -132,25 +132,130 @@ const refreshBlogsInBackground = async () => {
  */
 export const getBlogById = async (id) => {
   try {
+    // Check for cached blog first
+    const cachedBlog = sessionStorage.getItem(`blog_${id}`);
+    const cacheTimestamp = sessionStorage.getItem(`blog_${id}_timestamp`);
+    const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+    const cacheValid = cacheAge < 2 * 60 * 1000; // 2 minutes cache validity
+
+    if (cachedBlog && cacheValid) {
+      try {
+        const parsedBlog = JSON.parse(cachedBlog);
+        console.log(`Using cached blog ${id} from sessionStorage`);
+
+        // Refresh in background
+        setTimeout(() => {
+          refreshBlogInBackground(id);
+        }, 100);
+
+        return parsedBlog;
+      } catch (cacheError) {
+        console.error(`Error parsing cached blog ${id}:`, cacheError);
+      }
+    }
+
     // Use apiClient which handles trailing slash issues
     const response = await apiClient.get(`/blogs/${id}/`);
+
+    // Cache the successful response
+    try {
+      sessionStorage.setItem(`blog_${id}`, JSON.stringify(response.data));
+      sessionStorage.setItem(`blog_${id}_timestamp`, Date.now().toString());
+      console.log(`Cached blog ${id} in sessionStorage`);
+    } catch (storageError) {
+      console.error(`Error caching blog ${id}:`, storageError);
+    }
+
     return response.data;
   } catch (error) {
     console.error(`Error fetching blog ${id}:`, error);
 
-    // Fallback to direct axios call if apiClient fails
+    // Try to get cached blog as fallback
+    try {
+      const cachedBlog = sessionStorage.getItem(`blog_${id}`);
+      if (cachedBlog) {
+        const parsedBlog = JSON.parse(cachedBlog);
+        console.log(`Using cached blog ${id} as fallback after API error`);
+        return parsedBlog;
+      }
+    } catch (cacheError) {
+      console.error(`Error using cached blog ${id} as fallback:`, cacheError);
+    }
+
+    // Fallback to direct axios call if apiClient fails and no cache
     try {
       // Try with trailing slash first
       const response = await axios.get(`/api/blogs/${id}/`);
+
+      // Cache this response too
+      try {
+        sessionStorage.setItem(`blog_${id}`, JSON.stringify(response.data));
+        sessionStorage.setItem(`blog_${id}_timestamp`, Date.now().toString());
+      } catch (storageError) {
+        console.error(`Error caching blog ${id} from fallback:`, storageError);
+      }
+
       return response.data;
     } catch (axiosError) {
       if (axiosError.response && axiosError.response.status === 404) {
         // If 404, try without trailing slash
         const response = await axios.get(`/api/blogs/${id}`);
+
+        // Cache this response too
+        try {
+          sessionStorage.setItem(`blog_${id}`, JSON.stringify(response.data));
+          sessionStorage.setItem(`blog_${id}_timestamp`, Date.now().toString());
+        } catch (storageError) {
+          console.error(`Error caching blog ${id} from fallback:`, storageError);
+        }
+
         return response.data;
       }
       throw axiosError;
     }
+  }
+};
+
+/**
+ * Refresh a blog in the background without affecting the UI
+ * @private
+ */
+const refreshBlogInBackground = async (id) => {
+  try {
+    console.log(`Refreshing blog ${id} in background`);
+
+    // Try apiClient first
+    try {
+      const response = await apiClient.get(`/blogs/${id}/`);
+
+      // Update cache with fresh data
+      try {
+        sessionStorage.setItem(`blog_${id}`, JSON.stringify(response.data));
+        sessionStorage.setItem(`blog_${id}_timestamp`, Date.now().toString());
+        console.log(`Updated cached blog ${id} in background`);
+      } catch (storageError) {
+        console.error(`Error updating cached blog ${id}:`, storageError);
+      }
+
+      return;
+    } catch (apiError) {
+      console.error(`Background refresh of blog ${id} with apiClient failed:`, apiError);
+    }
+
+    // Fallback to direct axios
+    const fallbackResponse = await axios.get(`/api/blogs/${id}/`);
+
+    // Update cache with fallback data
+    try {
+      sessionStorage.setItem(`blog_${id}`, JSON.stringify(fallbackResponse.data));
+      sessionStorage.setItem(`blog_${id}_timestamp`, Date.now().toString());
+      console.log(`Updated cached blog ${id} in background with fallback`);
+    } catch (storageError) {
+      console.error(`Error updating cached blog ${id} with fallback:`, storageError);
+    }
+  } catch (error) {
+    console.error(`Background refresh of blog ${id} failed:`, error);
+    // Don't throw - this is a background operation
   }
 };
 

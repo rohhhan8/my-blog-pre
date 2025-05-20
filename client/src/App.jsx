@@ -2,12 +2,13 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { LikeProvider } from './context/LikeContext';
+import { LoadingProvider } from './context/LoadingContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import PageTransition from './components/PageTransition';
 import NameFixer from './components/NameFixer';
-import LogoLoader from './components/LogoLoader';
+import GlobalLoader from './components/GlobalLoader';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -139,7 +140,6 @@ const addCustomAnimations = () => {
 };
 
 function App() {
-  const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
     return savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -156,11 +156,6 @@ function App() {
     // Add custom animations
     addCustomAnimations();
   }, [theme]);
-
-  // Set loading to false immediately - no initial app loader
-  useEffect(() => {
-    setLoading(false);
-  }, []);
 
   // Add a global effect to replace author names in the DOM
   useEffect(() => {
@@ -262,13 +257,14 @@ function App() {
   return (
     <AuthProvider>
       <LikeProvider>
-        <Router>
-          {loading && <LogoLoader />}
-          <div className="flex flex-col min-h-screen">
-            <NameFixer />
-            <Navbar theme={theme} toggleTheme={toggleTheme} />
-            <main className="flex-grow">
-              <PageTransition>
+        <LoadingProvider>
+          <Router>
+            <GlobalLoader />
+            <div className="flex flex-col min-h-screen">
+              <NameFixer />
+              <Navbar theme={theme} toggleTheme={toggleTheme} />
+              <main className="flex-grow">
+                <PageTransition>
                 <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
@@ -328,9 +324,10 @@ function App() {
           </main>
           <Footer />
         </div>
-      </Router>
-    </LikeProvider>
-  </AuthProvider>
+          </Router>
+        </LoadingProvider>
+      </LikeProvider>
+    </AuthProvider>
   );
 }
 

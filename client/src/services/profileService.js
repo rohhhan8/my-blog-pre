@@ -2,6 +2,14 @@ import axios from 'axios';
 import api from './apiService';
 import apiClient from './apiClient';
 
+// Cache for profile data to reduce redundant API calls
+const profileCache = {
+  data: {},
+  timestamp: {},
+  // Cache expiration in milliseconds (5 minutes)
+  expirationTime: 5 * 60 * 1000
+};
+
 // Base URL for API requests
 // Don't include '/api' as it's already in the baseURL of apiService
 const API_URL = '/profiles/';
@@ -158,6 +166,16 @@ export const getUserProfile = async (usernameOrId) => {
     const cleanUsername = baseUsername.trim().replace(/[^\w\s]/g, '');
     console.log(`Original username: "${baseUsername}", Cleaned username: "${cleanUsername}", Query params: "${queryParams}"`);
 
+    // Check cache first
+    const cacheKey = baseUsername.toLowerCase();
+    const now = Date.now();
+    if (profileCache.data[cacheKey] &&
+        profileCache.timestamp[cacheKey] &&
+        (now - profileCache.timestamp[cacheKey] < profileCache.expirationTime)) {
+      console.log(`Using cached profile for ${baseUsername}`);
+      return profileCache.data[cacheKey];
+    }
+
     // Try multiple approaches to find the profile
     const approaches = [
       // 1. Try the public endpoint with the original username
@@ -306,7 +324,17 @@ export const getUserProfile = async (usernameOrId) => {
     // Try each approach in sequence
     for (let i = 0; i < approaches.length; i++) {
       try {
-        return await approaches[i]();
+        const result = await approaches[i]();
+
+        // Cache the successful result
+        if (result) {
+          const cacheKey = baseUsername.toLowerCase();
+          profileCache.data[cacheKey] = result;
+          profileCache.timestamp[cacheKey] = Date.now();
+          console.log(`Cached profile for ${baseUsername}`);
+        }
+
+        return result;
       } catch (err) {
         console.log(`Approach ${i+1} failed:`, err.message);
         // Continue to the next approach
@@ -317,6 +345,14 @@ export const getUserProfile = async (usernameOrId) => {
     throw new Error(`Could not find profile for ${usernameOrId} after trying all approaches`);
   } catch (error) {
     console.error(`Error fetching profile for ${usernameOrId}:`, error);
+
+    // Try to return cached data even if it's expired as a last resort
+    const cacheKey = baseUsername.toLowerCase();
+    if (profileCache.data[cacheKey]) {
+      console.log(`Using expired cache for ${baseUsername} as fallback`);
+      return profileCache.data[cacheKey];
+    }
+
     throw error;
   }
 };

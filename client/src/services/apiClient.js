@@ -10,8 +10,8 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
-      // Increase timeout to handle slow connections
-      timeout: 15000,
+      // Reduced timeout for faster response
+      timeout: 8000,
     });
 
     // Add request interceptor to include auth token from localStorage

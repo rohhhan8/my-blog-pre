@@ -10,9 +10,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="description" content="A modern blogging platform" />
-    <!-- Google Fonts -->
+
+    <!-- Preconnect to critical domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://my-blog-pre.onrender.com" crossorigin>
+    <link rel="dns-prefetch" href="https://my-blog-pre.onrender.com">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/public/blog-icon.svg" as="image" type="image/svg+xml">
+    <link rel="preload" href="/src/main.jsx" as="script" type="module">
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>BlogHub</title>
   </head>

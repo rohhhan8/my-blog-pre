@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { LikeProvider } from './context/LikeContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -8,17 +8,20 @@ import Footer from './components/Footer';
 import PageTransition from './components/PageTransition';
 import NameFixer from './components/NameFixer';
 import LogoLoader from './components/LogoLoader';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import BlogDetail from './pages/BlogDetail';
-import CreateBlog from './pages/CreateBlog';
-import EditBlog from './pages/EditBlog';
-import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
-import EditProfile from './pages/EditProfile';
-import NotFound from './pages/NotFound';
+import BLogoLoader from './components/BLogoLoader';
 import axios from 'axios';
+
+// Lazy load pages for better performance
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const BlogDetail = lazy(() => import('./pages/BlogDetail'));
+const CreateBlog = lazy(() => import('./pages/CreateBlog'));
+const EditBlog = lazy(() => import('./pages/EditBlog'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Profile = lazy(() => import('./pages/Profile'));
+const EditProfile = lazy(() => import('./pages/EditProfile'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Set up axios defaults
 axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -99,30 +102,54 @@ const addCustomAnimations = () => {
     .page-slide-in {
       opacity: 0;
       transform: translateY(10px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: opacity, transform;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
 
     .page-slide-in-active {
       opacity: 1;
       transform: translateY(0);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: opacity, transform;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
 
     .page-slide-out {
       opacity: 0;
       transform: translateY(-10px);
-      transition: opacity 0.3s ease, transform 0.3s ease;
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      will-change: opacity, transform;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
     }
 
     /* Loading bar animation */
     @keyframes loadingProgress {
-      0% { width: 0%; }
-      50% { width: 70%; }
-      100% { width: 100%; }
+      0% { width: 0%; opacity: 0.6; }
+      20% { width: 20%; opacity: 0.8; }
+      50% { width: 60%; opacity: 1; }
+      80% { width: 90%; opacity: 0.8; }
+      100% { width: 100%; opacity: 0.6; }
     }
 
     .loading-progress-bar {
-      animation: loadingProgress 2s ease-in-out infinite;
+      animation: loadingProgress 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      will-change: width, opacity;
+    }
+
+    /* Float animation for the B logo */
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+      will-change: transform;
     }
 
     .animation-delay-300 {
@@ -269,63 +296,65 @@ function App() {
             <Navbar theme={theme} toggleTheme={toggleTheme} />
             <main className="flex-grow">
               <PageTransition>
-                <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                {/* Support multiple URL formats for blog posts - simplified and prioritized */}
-                <Route path="/blog/:id" element={<BlogDetail />} />
-                <Route path="/blogs/:id" element={<BlogDetail />} />
+                <Suspense fallback={<BLogoLoader />}>
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/signup" element={<Signup />} />
+                    {/* Support multiple URL formats for blog posts - simplified and prioritized */}
+                    <Route path="/blog/:id" element={<BlogDetail />} />
+                    <Route path="/blogs/:id" element={<BlogDetail />} />
 
-                {/* Catch-all routes for any blog URL pattern */}
-                <Route path="/blog/*" element={<BlogDetail />} />
-                <Route path="/blogs/*" element={<BlogDetail />} />
+                    {/* Catch-all routes for any blog URL pattern */}
+                    <Route path="/blog/*" element={<BlogDetail />} />
+                    <Route path="/blogs/*" element={<BlogDetail />} />
 
-                <Route
-                  path="/create"
-                  element={
-                    <ProtectedRoute>
-                      <CreateBlog />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/edit/:_id"
-                  element={
-                    <ProtectedRoute>
-                      <EditBlog />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/profile/edit"
-                  element={
-                    <ProtectedRoute>
-                      <EditProfile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/profile/:username" element={<Profile />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </PageTransition>
-          </main>
+                    <Route
+                      path="/create"
+                      element={
+                        <ProtectedRoute>
+                          <CreateBlog />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <ProtectedRoute>
+                          <Dashboard />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/edit/:_id"
+                      element={
+                        <ProtectedRoute>
+                          <EditBlog />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <Profile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/profile/edit"
+                      element={
+                        <ProtectedRoute>
+                          <EditProfile />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="/profile/:username" element={<Profile />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </PageTransition>
+            </main>
           <Footer />
         </div>
       </Router>

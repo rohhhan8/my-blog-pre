@@ -6,6 +6,7 @@ import { getCurrentUserProfile, updateProfile, uploadProfileImage } from '../ser
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Spinner from '../components/ui/Spinner';
+import BLogoLoader from '../components/BLogoLoader';
 
 const EditProfile = () => {
   const { currentUser, updateUserProfile } = useAuth();
@@ -270,11 +271,7 @@ const EditProfile = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 flex justify-center items-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <BLogoLoader />;
   }
 
   return (

@@ -39,25 +39,48 @@ const PageTransition = ({ children }) => {
 
   useEffect(() => {
     if (location !== displayLocation) {
+      // Start the exit animation
       setTransitionStage('page-slide-out');
       setIsLoading(true);
 
+      // Wait for the exit animation to complete
       const timeout = setTimeout(() => {
+        // Update the location and start the entrance animation
         setDisplayLocation(location);
         setTransitionStage('page-slide-in');
 
-        // Hide loader after a short delay to ensure content is ready
+        // Preload any images or resources needed for the new page
+        const preloadResources = () => {
+          // Find all images in the new page and preload them
+          const images = document.querySelectorAll('img');
+          images.forEach(img => {
+            if (img.getAttribute('src') && !img.complete) {
+              img.setAttribute('loading', 'eager');
+            }
+          });
+        };
+
+        // Wait longer before hiding the loader to ensure content is fully ready
+        // This prevents the white flash between loader and content
         setTimeout(() => {
-          setIsLoading(false);
-        }, 200);
-      }, 300); // Faster transition (was 500ms)
+          preloadResources();
+
+          // Only hide the loader after the content has started to appear and resources are preloaded
+          const hideLoader = setTimeout(() => {
+            setIsLoading(false);
+          }, 500); // Increased to 500ms for smoother transition
+
+          return () => clearTimeout(hideLoader);
+        }, 500); // Increased to 500ms to ensure content is ready
+      }, 400); // Slightly longer transition timing for better animation
 
       return () => clearTimeout(timeout);
     }
 
+    // If we're not changing location, just activate the entrance animation
     const enterTimeout = setTimeout(() => {
       setTransitionStage('page-slide-in-active');
-    }, 10);
+    }, 100); // Increased for more reliable animation
 
     return () => clearTimeout(enterTimeout);
   }, [location, displayLocation]);

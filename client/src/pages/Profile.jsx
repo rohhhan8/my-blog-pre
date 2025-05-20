@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getCurrentUserProfile, getUserProfile } from '../services/profileService';
 import Button from '../components/ui/Button';
 import Spinner from '../components/ui/Spinner';
+import BLogoLoader from '../components/BLogoLoader';
 
 const Profile = () => {
   const { username } = useParams();
@@ -234,11 +235,7 @@ const Profile = () => {
   }, [username, currentUser]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 flex justify-center items-center">
-        <Spinner size="lg" />
-      </div>
-    );
+    return <BLogoLoader />;
   }
 
   // We'll only show a full error page for critical errors

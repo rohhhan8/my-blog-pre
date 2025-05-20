@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { getUserProfile } from "../services/profileService";
+import BLogoLoader from "../components/BLogoLoader";
 
 const BlogDetail = () => {
   const { id, _id, "*": splat } = useParams();  // Handle all route parameter formats
@@ -318,11 +319,58 @@ const BlogDetail = () => {
     }
   }, [blogId, location.pathname, navigate]);
 
-  if (loading) {
+  // Use state to control content visibility for smoother transitions
+  const [contentReady, setContentReady] = useState(false);
+  const [contentLoaded, setContentLoaded] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+
+  // When loading completes, prepare content with a slight delay
+  useEffect(() => {
+    if (!loading && blog) {
+      // Mark content as loaded
+      setContentLoaded(true);
+    }
+  }, [loading, blog]);
+
+  // When content is marked as ready by the loader, start rendering it in the background
+  useEffect(() => {
+    if (contentReady && contentLoaded) {
+      // Small delay before showing content to ensure smooth transition
+      const timer = setTimeout(() => {
+        setShowContent(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [contentReady, contentLoaded]);
+
+  // Handle the loader display
+  if (loading || !showContent) {
     return (
-      <div className="min-h-screen bg-blog-bg dark:bg-black pt-32 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-t-transparent border-gray-900 dark:border-white"></div>
-      </div>
+      <>
+        <BLogoLoader
+          onBeforeHide={() => setContentReady(true)}
+          onContentReady={(ready) => {
+            // This callback is triggered when the loader is ready to start
+            // transitioning out, but we'll keep it visible until content is ready
+            setContentReady(ready);
+          }}
+        />
+
+        {/* Pre-render the content but keep it hidden */}
+        {contentLoaded && (
+          <div className="hidden">
+            {/* Pre-load the blog image if it exists */}
+            {blog?.image_url && (
+              <img
+                src={blog.image_url}
+                alt="Preload"
+                onLoad={() => console.log("Blog image preloaded")}
+                style={{ display: 'none' }}
+              />
+            )}
+          </div>
+        )}
+      </>
     );
   }
 
@@ -473,7 +521,15 @@ const BlogDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black pt-28 sm:pt-32 pb-12 relative">
+    <div
+      className={`min-h-screen bg-white dark:bg-black pt-28 sm:pt-32 pb-12 relative transition-all duration-700 ease-in-out ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+      style={{
+        willChange: 'opacity, transform',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+        WebkitFontSmoothing: 'subpixel-antialiased'
+      }}
+    >
       {/* Share toast notification */}
       {showShareToast && (
         <div className="fixed bottom-4 right-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-md shadow-lg z-50 animate-fade-in">
@@ -489,7 +545,14 @@ const BlogDetail = () => {
               <img
                 src={blog.image_url}
                 alt={blog.title}
+                loading="eager"
+                decoding="async"
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                style={{
+                  willChange: 'transform',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden'
+                }}
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.style.display = 'none';

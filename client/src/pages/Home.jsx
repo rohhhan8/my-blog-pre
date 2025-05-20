@@ -515,7 +515,7 @@ const Home = () => {
       {/* Blog content section with monochromatic design */}
       <div id="blogs" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-28 pb-12 sm:pb-20 bg-white dark:bg-black">
         <div className="text-center mb-8 sm:mb-10 md:mb-14">
-          <h2 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white font-playfair mb-3 sm:mb-4 md:mb-7 tracking-tight px-2">
+          <h2 className="text-3xl xs:text-4xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white font-playfair mb-3 sm:mb-4 md:mb-7 tracking-tight px-2">
             Latest <span className="relative inline-block">
               Blogs
               <span className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-[3px] bg-gray-900 dark:bg-white"></span>

@@ -49,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'blog_app.middleware.CacheControlMiddleware',  # Add our custom caching middleware
 ]
 
 # Add WhiteNoise middleware if it's installed (for production static files)

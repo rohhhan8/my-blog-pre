@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
+import BLogoLoader from '../components/BLogoLoader';
 
 const EditBlog = () => {
   const { _id } = useParams();
@@ -225,11 +226,7 @@ const EditBlog = () => {
 
   // Loading state
   if (fetchLoading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-white dark:bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-2 border-gray-300 dark:border-gray-700 border-t-gray-900 dark:border-t-white"></div>
-      </div>
-    );
+    return <BLogoLoader />;
   }
 
   // Error state

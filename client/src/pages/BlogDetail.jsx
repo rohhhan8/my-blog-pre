@@ -66,6 +66,69 @@ const BlogDetail = () => {
     setShareUrl(cleanShareUrl);
   }, [blogId]);
 
+  // Function to fetch fresh blog data in the background
+  const fetchFreshBlogData = async (blogId) => {
+    if (!blogId) return;
+
+    try {
+      console.log("Fetching fresh blog data in background for ID:", blogId);
+
+      // Try different URL formats to handle potential API inconsistencies
+      let response;
+      try {
+        // First try with trailing slash
+        response = await axios.get(`/api/blogs/${blogId}/`);
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          // If 404, try without trailing slash
+          response = await axios.get(`/api/blogs/${blogId}`);
+        } else {
+          throw error;
+        }
+      }
+
+      if (response && response.data) {
+        console.log("Got fresh blog data:", response.data);
+
+        // Update the blog data
+        setBlog(response.data);
+
+        // Update like status and counts
+        if (response.data.is_liked !== undefined) {
+          setIsLiked(response.data.is_liked);
+        }
+
+        if (response.data.like_count !== undefined) {
+          setLikeCount(response.data.like_count);
+        }
+
+        if (response.data.views !== undefined) {
+          setViewCount(response.data.views);
+        }
+
+        // Cache the blog data
+        try {
+          sessionStorage.setItem(`blog_${blogId}`, JSON.stringify(response.data));
+          sessionStorage.setItem(`blog_${blogId}_timestamp`, Date.now().toString());
+        } catch (storageError) {
+          console.error("Error caching blog:", storageError);
+        }
+
+        // Track view
+        try {
+          const viewResponse = await axios.get(`/api/blogs/${blogId}/view/`);
+          if (viewResponse.data.views) {
+            setViewCount(viewResponse.data.views);
+          }
+        } catch (viewErr) {
+          console.error("Error tracking view:", viewErr);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching fresh blog data:", err);
+    }
+  };
+
   // Function to fetch author profile
   const fetchAuthorProfile = async (authorName) => {
     if (!authorName) return;
@@ -141,6 +204,58 @@ const BlogDetail = () => {
         setLoading(true);
         console.log("Fetching blog with ID:", blogId);
 
+        // Check if we have a cached version of this blog
+        const cachedBlog = sessionStorage.getItem(`blog_${blogId}`);
+        const cacheTimestamp = sessionStorage.getItem(`blog_${blogId}_timestamp`);
+        const cacheAge = cacheTimestamp ? Date.now() - parseInt(cacheTimestamp) : Infinity;
+        const cacheValid = cacheAge < 5 * 60 * 1000; // 5 minutes cache validity
+
+        // If we have a valid cached blog, use it immediately
+        if (cachedBlog && cacheValid) {
+          try {
+            const parsedBlog = JSON.parse(cachedBlog);
+            console.log("Using cached blog from sessionStorage");
+            setBlog(parsedBlog);
+
+            // Set like status and counts
+            if (parsedBlog.is_liked !== undefined) {
+              setIsLiked(parsedBlog.is_liked);
+            }
+
+            if (parsedBlog.like_count !== undefined) {
+              setLikeCount(parsedBlog.like_count);
+            }
+
+            if (parsedBlog.views !== undefined) {
+              setViewCount(parsedBlog.views);
+            }
+
+            // Set initial author name from blog data
+            if (parsedBlog.author_name) {
+              setAuthorName(parsedBlog.author_name);
+            }
+
+            // Continue with author profile fetching in the background
+            const authorToCheck = parsedBlog.author_name || parsedBlog.author;
+            if (authorToCheck) {
+              fetchAuthorProfile(authorToCheck).catch(err => {
+                console.error("Error fetching author profile:", err);
+              });
+            }
+
+            // Fetch fresh data in the background
+            setTimeout(() => {
+              fetchFreshBlogData(blogId).catch(err => {
+                console.error("Error fetching fresh blog data:", err);
+              });
+            }, 1000);
+
+            return;
+          } catch (cacheError) {
+            console.error("Error parsing cached blog:", cacheError);
+          }
+        }
+
         // Try different URL formats to handle potential API inconsistencies
         let response;
         try {
@@ -175,6 +290,15 @@ const BlogDetail = () => {
         // Set initial author name from blog data
         if (response.data.author_name) {
           setAuthorName(response.data.author_name);
+        }
+
+        // Cache the blog data for future visits
+        try {
+          sessionStorage.setItem(`blog_${blogId}`, JSON.stringify(response.data));
+          sessionStorage.setItem(`blog_${blogId}_timestamp`, Date.now().toString());
+          console.log("Blog data cached in sessionStorage");
+        } catch (storageError) {
+          console.error("Error caching blog:", storageError);
         }
 
         // Check if this is the current user's blog
@@ -329,6 +453,15 @@ const BlogDetail = () => {
     if (!loading && blog) {
       // Mark content as loaded
       setContentLoaded(true);
+
+      // Preload the blog image if it exists
+      if (blog.image_url) {
+        const img = new Image();
+        img.src = blog.image_url;
+        img.onload = () => {
+          console.log("Blog image preloaded");
+        };
+      }
     }
   }, [loading, blog]);
 
@@ -338,7 +471,7 @@ const BlogDetail = () => {
       // Small delay before showing content to ensure smooth transition
       const timer = setTimeout(() => {
         setShowContent(true);
-      }, 500);
+      }, 800); // Increased delay for smoother transition
       return () => clearTimeout(timer);
     }
   }, [contentReady, contentLoaded]);
@@ -364,10 +497,15 @@ const BlogDetail = () => {
               <img
                 src={blog.image_url}
                 alt="Preload"
-                onLoad={() => console.log("Blog image preloaded")}
+                onLoad={() => console.log("Blog image preloaded in hidden div")}
                 style={{ display: 'none' }}
               />
             )}
+            {/* Pre-render text content */}
+            <div style={{ display: 'none' }}>
+              {blog?.title && <h1>{blog.title}</h1>}
+              {blog?.content && <div dangerouslySetInnerHTML={{ __html: blog.content }} />}
+            </div>
           </div>
         )}
       </>
@@ -522,12 +660,13 @@ const BlogDetail = () => {
 
   return (
     <div
-      className={`min-h-screen bg-white dark:bg-black pt-28 sm:pt-32 pb-12 relative transition-all duration-700 ease-in-out ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+      className={`min-h-screen bg-white dark:bg-black pt-28 sm:pt-32 pb-12 relative transition-all duration-1000 ease-in-out ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
       style={{
         willChange: 'opacity, transform',
         backfaceVisibility: 'hidden',
         WebkitBackfaceVisibility: 'hidden',
-        WebkitFontSmoothing: 'subpixel-antialiased'
+        WebkitFontSmoothing: 'subpixel-antialiased',
+        transform: showContent ? 'translateZ(0)' : 'translateZ(0) translateY(4px)'
       }}
     >
       {/* Share toast notification */}
@@ -547,13 +686,19 @@ const BlogDetail = () => {
                 alt={blog.title}
                 loading="eager"
                 decoding="async"
+                fetchpriority="high"
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 style={{
                   willChange: 'transform',
                   backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden'
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'translateZ(0)'
+                }}
+                onLoad={() => {
+                  console.log("Blog image loaded in main view");
                 }}
                 onError={(e) => {
+                  console.error("Error loading blog image:", e);
                   e.target.onerror = null;
                   e.target.style.display = 'none';
                 }}

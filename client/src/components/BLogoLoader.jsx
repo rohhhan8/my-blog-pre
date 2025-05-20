@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 
-// A simplified B logo loader component that matches the page transition loader
+// An improved B logo loader component that ensures content is fully loaded before hiding
 const BLogoLoader = ({ onBeforeHide, onContentReady }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isRendered, setIsRendered] = useState(true);
   const [contentIsReady, setContentIsReady] = useState(false);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [hideRequested, setHideRequested] = useState(false);
   const loaderRef = useRef(null);
+  const animationIterations = useRef(0);
 
   // This effect handles the fade-out animation before unmounting
   useEffect(() => {
@@ -17,14 +20,19 @@ const BLogoLoader = ({ onBeforeHide, onContentReady }) => {
     };
   }, [onBeforeHide]);
 
-  // This ensures the component stays visible for at least 800ms
+  // This ensures the component stays visible for at least 1500ms
+  // to prevent flickering on slow connections
   useEffect(() => {
     const minDisplayTime = setTimeout(() => {
-      setIsVisible(true);
-    }, 800);
+      setMinTimeElapsed(true);
+      // Only hide if a hide was already requested
+      if (hideRequested && contentIsReady) {
+        setIsVisible(false);
+      }
+    }, 1500);
 
     return () => clearTimeout(minDisplayTime);
-  }, []);
+  }, [hideRequested, contentIsReady]);
 
   // This effect handles the content ready callback
   useEffect(() => {
@@ -39,14 +47,21 @@ const BLogoLoader = ({ onBeforeHide, onContentReady }) => {
   // Handle the actual unmounting after fade-out animation completes
   const handleTransitionEnd = () => {
     if (!isVisible) {
-      setIsRendered(false);
+      // Add a small delay before actually removing the loader
+      // to ensure a smooth transition
+      setTimeout(() => {
+        setIsRendered(false);
+      }, 100);
     }
   };
 
   // This function is called when we want to start hiding the loader
   const startHiding = () => {
-    // Only start hiding if content is ready
-    if (contentIsReady) {
+    // Request hiding - will only happen after min time has elapsed
+    setHideRequested(true);
+
+    // Only actually hide if min time has elapsed and content is ready
+    if (minTimeElapsed && contentIsReady) {
       setIsVisible(false);
     }
   };
@@ -57,7 +72,12 @@ const BLogoLoader = ({ onBeforeHide, onContentReady }) => {
     <div
       ref={loaderRef}
       className="fixed inset-0 bg-white/95 dark:bg-black/95 backdrop-blur-md flex items-center justify-center z-50 transition-opacity duration-700"
-      style={{ opacity: isVisible ? 1 : 0 }}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        willChange: 'opacity',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden'
+      }}
       onTransitionEnd={handleTransitionEnd}
     >
       <div className="flex flex-col items-center">
@@ -74,17 +94,25 @@ const BLogoLoader = ({ onBeforeHide, onContentReady }) => {
         </div>
 
         {/* Loading indicator */}
-        <div className="mt-6 w-16 h-0.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div className="mt-6 w-24 h-1 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
           <div
             className="h-full bg-gray-900 dark:bg-white loading-progress-bar"
             onAnimationIteration={() => {
-              // After a few iterations of the loading bar animation,
+              // Count animation iterations
+              animationIterations.current += 1;
+
+              // After several iterations of the loading bar animation,
               // if content is ready, start hiding the loader
-              if (contentIsReady) {
+              if (contentIsReady && animationIterations.current > 2) {
                 startHiding();
               }
             }}
           ></div>
+        </div>
+
+        {/* Loading text */}
+        <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+          Loading...
         </div>
       </div>
     </div>

@@ -462,16 +462,41 @@ const BlogDetail = () => {
           console.log("Blog image preloaded");
         };
       }
+
+      // Preload any images in the content
+      if (blog.content) {
+        // Create a temporary div to parse the content
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = blog.content;
+
+        // Find all images in the content
+        const contentImages = tempDiv.querySelectorAll('img');
+        contentImages.forEach(imgEl => {
+          if (imgEl.src) {
+            const img = new Image();
+            img.src = imgEl.src;
+            console.log("Preloading content image:", imgEl.src);
+          }
+        });
+      }
     }
   }, [loading, blog]);
 
   // When content is marked as ready by the loader, start rendering it in the background
   useEffect(() => {
     if (contentReady && contentLoaded) {
-      // Small delay before showing content to ensure smooth transition
+      // Longer delay before showing content to ensure smooth transition
       const timer = setTimeout(() => {
         setShowContent(true);
-      }, 800); // Increased delay for smoother transition
+
+        // Dispatch a custom event to signal that content is fully ready
+        // This will be caught by the BLogoLoader component
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('blogContentReady'));
+          console.log("Dispatched blogContentReady event");
+        }, 500);
+      }, 1500); // Increased delay for smoother transition
+
       return () => clearTimeout(timer);
     }
   }, [contentReady, contentLoaded]);
@@ -489,7 +514,7 @@ const BlogDetail = () => {
           }}
         />
 
-        {/* Pre-render the content but keep it hidden */}
+        {/* Pre-render the content but keep it hidden - this is crucial for performance */}
         {contentLoaded && (
           <div className="hidden">
             {/* Pre-load the blog image if it exists */}
@@ -660,13 +685,18 @@ const BlogDetail = () => {
 
   return (
     <div
-      className={`min-h-screen bg-white dark:bg-black pt-28 sm:pt-32 pb-12 relative transition-all duration-1000 ease-in-out ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+      className={`min-h-screen bg-white dark:bg-black pt-28 sm:pt-32 pb-12 relative transition-all duration-1500 ease-in-out ${showContent ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
       style={{
         willChange: 'opacity, transform',
         backfaceVisibility: 'hidden',
         WebkitBackfaceVisibility: 'hidden',
         WebkitFontSmoothing: 'subpixel-antialiased',
-        transform: showContent ? 'translateZ(0)' : 'translateZ(0) translateY(4px)'
+        transform: showContent ? 'translateZ(0)' : 'translateZ(0) translateY(4px)',
+        visibility: showContent ? 'visible' : 'hidden' // Hide content completely until ready
+      }}
+      onLoad={() => {
+        // Dispatch event when the main content is loaded
+        window.dispatchEvent(new CustomEvent('blogContentReady'));
       }}
     >
       {/* Share toast notification */}
@@ -696,11 +726,15 @@ const BlogDetail = () => {
                 }}
                 onLoad={() => {
                   console.log("Blog image loaded in main view");
+                  // Dispatch event when the image is loaded
+                  window.dispatchEvent(new CustomEvent('blogContentReady'));
                 }}
                 onError={(e) => {
                   console.error("Error loading blog image:", e);
                   e.target.onerror = null;
                   e.target.style.display = 'none';
+                  // Still dispatch the event even if image fails to load
+                  window.dispatchEvent(new CustomEvent('blogContentReady'));
                 }}
               />
             </div>
@@ -847,10 +881,25 @@ const BlogDetail = () => {
             </div>
 
             {/* Content */}
-            <article className="prose dark:prose-invert max-w-none prose-base sm:prose-lg md:prose-xl">
-              {blog.content.split('\n').map((paragraph, index) => (
-                paragraph ? <p key={index} className="mb-4 sm:mb-6 text-gray-800 dark:text-gray-100 text-sm sm:text-base md:text-lg">{paragraph}</p> : <br key={index} />
-              ))}
+            <article
+              className="prose dark:prose-invert max-w-none prose-base sm:prose-lg md:prose-xl"
+              ref={(el) => {
+                if (el) {
+                  // Dispatch event when the content is rendered
+                  window.dispatchEvent(new CustomEvent('blogContentReady'));
+                  console.log("Content rendered, dispatched blogContentReady event");
+                }
+              }}
+            >
+              {blog.content && typeof blog.content === 'string' && blog.content.includes('<') && blog.content.includes('>') ? (
+                // If content appears to be HTML, render it as HTML
+                <div dangerouslySetInnerHTML={{ __html: blog.content }} />
+              ) : (
+                // Otherwise, render it as plain text with paragraph breaks
+                blog.content.split('\n').map((paragraph, index) => (
+                  paragraph ? <p key={index} className="mb-4 sm:mb-6 text-gray-800 dark:text-gray-100 text-sm sm:text-base md:text-lg">{paragraph}</p> : <br key={index} />
+                ))
+              )}
             </article>
 
             {/* Back to home button */}

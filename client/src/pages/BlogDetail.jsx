@@ -10,6 +10,164 @@ const BlogDetail = () => {
   const { id, _id, "*": splat } = useParams();  // Handle all route parameter formats
   const location = useLocation();
 
+  // Generate a consistent color for the blog based on its ID - EXACT SAME as BlogCard component
+  const getBlogColor = (blogId) => {
+    if (!blogId) return '#000000'; // Default to black if no ID
+
+    // Use a hash of the blog ID to generate a consistent color for each blog
+    const hash = blogId.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+
+    // Define a wide variety of solid colors for blog cards
+    const colorPalette = [
+      // Reds
+      '#FF0000', // Red
+      '#DC2626', // Red-600
+      '#B91C1C', // Red-700
+      '#991B1B', // Red-800
+      '#7F1D1D', // Red-900
+      '#EF4444', // Red-500
+
+      // Oranges
+      '#FF8C00', // Dark Orange
+      '#F97316', // Orange-500
+      '#EA580C', // Orange-600
+      '#C2410C', // Orange-700
+      '#FF4500', // OrangeRed
+      '#FB923C', // Orange-400
+
+      // Yellows
+      '#FFFF00', // Yellow
+      '#FACC15', // Yellow-400
+      '#EAB308', // Yellow-500
+      '#CA8A04', // Yellow-600
+      '#A16207', // Yellow-700
+      '#FEF08A', // Yellow-200
+
+      // Greens
+      '#00FF00', // Lime
+      '#22C55E', // Green-500
+      '#16A34A', // Green-600
+      '#15803D', // Green-700
+      '#166534', // Green-800
+      '#4ADE80', // Green-400
+      '#84CC16', // Lime-500
+      '#65A30D', // Lime-600
+      '#008000', // Green
+
+      // Blues
+      '#0000FF', // Blue
+      '#3B82F6', // Blue-500
+      '#2563EB', // Blue-600
+      '#1D4ED8', // Blue-700
+      '#1E40AF', // Blue-800
+      '#60A5FA', // Blue-400
+      '#0284C7', // Sky-600
+      '#0369A1', // Sky-700
+      '#0EA5E9', // Sky-500
+
+      // Purples/Violets
+      '#800080', // Purple
+      '#8B5CF6', // Violet-500
+      '#7C3AED', // Violet-600
+      '#6D28D9', // Violet-700
+      '#5B21B6', // Violet-800
+      '#A78BFA', // Violet-400
+      '#9333EA', // Purple-600
+      '#7E22CE', // Purple-700
+      '#6B21A8', // Purple-800
+
+      // Pinks
+      '#FFC0CB', // Pink
+      '#EC4899', // Pink-500
+      '#DB2777', // Pink-600
+      '#BE185D', // Pink-700
+      '#9D174D', // Pink-800
+      '#F472B6', // Pink-400
+      '#FF1493', // Deep Pink
+
+      // Browns
+      '#A52A2A', // Brown
+      '#92400E', // Amber-800
+      '#78350F', // Amber-900
+      '#B45309', // Amber-700
+      '#D97706', // Amber-600
+      '#F59E0B', // Amber-500
+
+      // Teals/Cyans
+      '#008080', // Teal
+      '#0D9488', // Teal-600
+      '#0F766E', // Teal-700
+      '#115E59', // Teal-800
+      '#14B8A6', // Teal-500
+      '#2DD4BF', // Teal-400
+      '#06B6D4', // Cyan-500
+      '#0891B2', // Cyan-600
+      '#00FFFF', // Cyan
+
+      // Grays/Blacks
+      '#000000', // Black
+      '#18181B', // Zinc-900
+      '#27272A', // Zinc-800
+      '#3F3F46', // Zinc-700
+      '#52525B', // Zinc-600
+      '#71717A', // Zinc-500
+      '#1E293B', // Slate-800
+      '#334155', // Slate-700
+      '#475569', // Slate-600
+
+      // Other colors
+      '#4B0082', // Indigo
+      '#9400D3', // DarkViolet
+      '#8A2BE2', // BlueViolet
+      '#9370DB', // MediumPurple
+      '#6A0DAD', // Purple
+      '#FF00FF', // Magenta
+      '#C71585', // MediumVioletRed
+      '#FF6347', // Tomato
+      '#FF7F50', // Coral
+      '#20B2AA', // LightSeaGreen
+      '#3CB371', // MediumSeaGreen
+      '#2E8B57', // SeaGreen
+      '#228B22', // ForestGreen
+      '#32CD32', // LimeGreen
+      '#00FA9A', // MediumSpringGreen
+      '#00CED1', // DarkTurquoise
+      '#5F9EA0', // CadetBlue
+      '#4682B4', // SteelBlue
+      '#6495ED', // CornflowerBlue
+      '#4169E1', // RoyalBlue
+      '#191970', // MidnightBlue
+      '#8B4513', // SaddleBrown
+      '#A0522D', // Sienna
+      '#CD853F', // Peru
+      '#DEB887', // BurlyWood
+      '#8B0000', // DarkRed
+      '#800000', // Maroon
+      '#B22222', // FireBrick
+      '#DC143C', // Crimson
+    ];
+
+    // Use the hash to select a color from the palette
+    const colorIndex = Math.abs(hash) % colorPalette.length;
+    return colorPalette[colorIndex];
+  };
+
+  // Function to determine if text should be white or black based on background color - EXACT SAME as BlogCard component
+  const getTextColor = (bgColor) => {
+    // Convert hex to RGB
+    const r = parseInt(bgColor.slice(1, 3), 16);
+    const g = parseInt(bgColor.slice(3, 5), 16);
+    const b = parseInt(bgColor.slice(5, 7), 16);
+
+    // Calculate luminance - a measure of how bright the color appears
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    // Return white for dark backgrounds, black for light backgrounds
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  };
+
   // Extract blog ID from various possible sources
   const extractBlogId = () => {
     // First try the direct params
@@ -55,6 +213,8 @@ const BlogDetail = () => {
   const [showShareToast, setShowShareToast] = useState(false);
   const [authorProfile, setAuthorProfile] = useState(null);
   const [authorName, setAuthorName] = useState("");
+  const [blogColor, setBlogColor] = useState("#000000");
+  const [textColor, setTextColor] = useState("#FFFFFF");
 
   // Set share URL when component mounts
   useEffect(() => {
@@ -454,6 +614,16 @@ const BlogDetail = () => {
       // Mark content as loaded
       setContentLoaded(true);
 
+      // Set the blog color based on the blog ID - EXACTLY like BlogCard component
+      const color = getBlogColor(blog._id);
+      setBlogColor(color);
+
+      // Set the text color based on the blog color - EXACTLY like BlogCard component
+      const text = getTextColor(color);
+      setTextColor(text);
+
+      console.log("Blog color set to:", color, "with text color:", text);
+
       // Preload the blog image if it exists
       if (blog.image_url) {
         const img = new Image();
@@ -707,7 +877,11 @@ const BlogDetail = () => {
       )}
 
       <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 w-full">
-        <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="rounded-lg shadow-md border overflow-hidden" style={{
+          background: blogColor,
+          color: textColor,
+          borderColor: `${textColor}30`
+        }}>
           {/* Banner Image */}
           {blog.image_url && (
             <div className="w-full h-48 sm:h-64 md:h-96 overflow-hidden">
@@ -742,7 +916,7 @@ const BlogDetail = () => {
 
           <div className="p-4 sm:p-6 md:p-10">
             {/* Title */}
-            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-gray-900 dark:text-white font-playfair mb-4 sm:mb-6">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-gray-900 dark:text-white font-playfair mb-4 sm:mb-6" style={{ color: textColor }}>
               {blog.title}
             </h1>
 
@@ -779,7 +953,14 @@ const BlogDetail = () => {
                     }
                   }}
                 >
-                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 font-medium text-lg hover:shadow-md transition-shadow">
+                  <div
+                    className="h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center font-medium text-lg hover:shadow-md transition-shadow"
+                    style={{
+                      backgroundColor: blogColor,
+                      color: textColor,
+                      border: `1px solid ${textColor}30`
+                    }}
+                  >
                     {authorName?.charAt(0)?.toUpperCase() || blog.author_name?.charAt(0)?.toUpperCase() || blog.author?.charAt(0)?.toUpperCase() || 'A'}
                   </div>
                 </Link>
@@ -787,7 +968,8 @@ const BlogDetail = () => {
                   {/* Author name with link to profile */}
                   <Link
                     to={`/profile/${encodeURIComponent(authorName || blog.author_name || blog.author || 'anonymous')}`}
-                    className="text-sm sm:text-base font-medium text-gray-900 dark:text-white hover:underline"
+                    className="text-sm sm:text-base font-medium hover:underline"
+                    style={{ color: textColor }}
                     onClick={(e) => {
                       // Log the author info for debugging
                       console.log('Author info (from name link):', {
@@ -816,10 +998,10 @@ const BlogDetail = () => {
                   >
                     {authorName || blog.author_name || blog.author || 'Anonymous'}
                   </Link>
-                  <div className="flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400 space-x-2 sm:space-x-4">
+                  <div className="flex items-center text-xs sm:text-sm space-x-2 sm:space-x-4" style={{ color: textColor, opacity: 0.8 }}>
                     <span>{formattedDate}</span>
                     <span className="flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 sm:h-4 sm:w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke={textColor} style={{ opacity: 0.8 }}>
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
@@ -833,18 +1015,23 @@ const BlogDetail = () => {
                 {/* Like button */}
                 <button
                   onClick={handleLike}
-                  className={`flex items-center space-x-1 px-2 sm:px-3 py-1 rounded-full border ${
-                    isLiked
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white'
-                      : 'bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900'
-                  } transition-colors text-xs sm:text-sm`}
+                  className="flex items-center space-x-1 px-2 sm:px-3 py-1 rounded-full border transition-colors text-xs sm:text-sm"
+                  style={{
+                    backgroundColor: isLiked ? `${textColor}30` : 'transparent',
+                    borderColor: `${textColor}40`,
+                    color: textColor
+                  }}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4 sm:h-5 sm:w-5"
-                    fill={isLiked ? "currentColor" : "none"}
+                    fill={isLiked ? textColor : "none"}
                     viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    stroke={textColor}
+                    style={{
+                      opacity: isLiked ? 1 : 0.8,
+                      transform: isLiked ? 'scale(1.1)' : 'scale(1)'
+                    }}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
@@ -854,14 +1041,20 @@ const BlogDetail = () => {
                 {/* Share button */}
                 <button
                   onClick={handleShare}
-                  className="flex items-center space-x-1 px-2 sm:px-3 py-1 rounded-full border bg-white dark:bg-black text-gray-900 dark:text-white border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors text-xs sm:text-sm"
+                  className="flex items-center space-x-1 px-2 sm:px-3 py-1 rounded-full border transition-colors text-xs sm:text-sm"
+                  style={{
+                    backgroundColor: 'transparent',
+                    borderColor: `${textColor}40`,
+                    color: textColor
+                  }}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-4 w-4 sm:h-5 sm:w-5"
                     fill="none"
                     viewBox="0 0 24 24"
-                    stroke="currentColor"
+                    stroke={textColor}
+                    style={{ opacity: 0.8 }}
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                   </svg>
@@ -872,7 +1065,12 @@ const BlogDetail = () => {
                 {isAuthor && (
                   <Link
                     to={`/edit/${blogId}`}
-                    className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 sm:px-5 py-1 sm:py-2 rounded text-xs sm:text-sm hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+                    className="inline-flex items-center px-3 sm:px-5 py-1 sm:py-2 rounded text-xs sm:text-sm transition-all duration-300 shadow-sm"
+                    style={{
+                      backgroundColor: textColor,
+                      color: blogColor,
+                      border: `1px solid ${textColor}30`
+                    }}
                   >
                     Edit Post
                   </Link>
@@ -883,6 +1081,7 @@ const BlogDetail = () => {
             {/* Content */}
             <article
               className="prose dark:prose-invert max-w-none prose-base sm:prose-lg md:prose-xl"
+              style={{ color: textColor }}
               ref={(el) => {
                 if (el) {
                   // Dispatch event when the content is rendered
@@ -897,7 +1096,7 @@ const BlogDetail = () => {
               ) : (
                 // Otherwise, render it as plain text with paragraph breaks
                 blog.content.split('\n').map((paragraph, index) => (
-                  paragraph ? <p key={index} className="mb-4 sm:mb-6 text-gray-800 dark:text-gray-100 text-sm sm:text-base md:text-lg">{paragraph}</p> : <br key={index} />
+                  paragraph ? <p key={index} className="mb-4 sm:mb-6 text-gray-800 dark:text-gray-100 text-sm sm:text-base md:text-lg" style={{ color: textColor }}>{paragraph}</p> : <br key={index} />
                 ))
               )}
             </article>
@@ -907,6 +1106,7 @@ const BlogDetail = () => {
               <Link
                 to="/"
                 className="inline-flex items-center text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-sm sm:text-base"
+                style={{ color: textColor }}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

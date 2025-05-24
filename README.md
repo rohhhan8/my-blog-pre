@@ -1,4 +1,4 @@
-# BlogHub - Full-Stack Blog Application (Fixed Deployment)
+# BlogHub - Full-Stack Blog Application
 
 A modern, responsive blog application built with React, Django, Firebase Authentication, and MongoDB.
 

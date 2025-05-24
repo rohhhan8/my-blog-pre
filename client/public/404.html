@@ -5,30 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BlogHub</title>
   <script>
-    // Immediate redirect for blog URLs
-    // This should only be reached if Vercel routing fails
-    (function() {
-      const path = window.location.pathname;
-      const search = window.location.search;
-      const hash = window.location.hash;
-      
-      // If this is a blog URL, redirect to the main app immediately
-      if (path.match(/^\/blog[s]?\/[a-zA-Z0-9]+\/?$/)) {
-        // Redirect to the main app root, React Router will handle the rest
-        window.location.replace('/' + search + hash);
-      } else {
-        // For other URLs, go to home
-        window.location.replace('/');
-      }
-    })();
+    // Immediate redirect - no delay, no UI
+    window.location.replace('/');
   </script>
 </head>
 <body>
-  <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: system-ui;">
-    <div style="text-align: center;">
-      <h1>Redirecting...</h1>
-      <p>If you're not redirected automatically, <a href="/">click here</a>.</p>
-    </div>
-  </div>
+  <p>Redirecting...</p>
 </body>
 </html>

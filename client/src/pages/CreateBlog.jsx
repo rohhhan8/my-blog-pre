@@ -235,8 +235,8 @@ const CreateBlog = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200 pt-24 sm:pt-28">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-200 page-content">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="p-4 md:p-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white font-playfair mb-4">

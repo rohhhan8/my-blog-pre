@@ -758,7 +758,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black pt-24 sm:pt-28 pb-12">
+    <div className="min-h-screen bg-white dark:bg-black page-content">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">

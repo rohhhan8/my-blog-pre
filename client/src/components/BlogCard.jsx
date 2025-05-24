@@ -244,7 +244,7 @@ const BlogCard = ({ blog }) => {
               document.body.removeChild(toast);
             }
           }, 300);
-        }, 5000);
+        }, 3000);
       }
     } catch (err) {
       console.error("Error sharing:", err);

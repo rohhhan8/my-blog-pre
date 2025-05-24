@@ -1,6 +1,0 @@
-{
-  "framework": "vite",
-  "buildCommand": "npm run build-sh",
-  "outputDirectory": "dist",
-  "installCommand": "npm install"
-}

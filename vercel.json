@@ -1,17 +1,1 @@
-{
-  "buildCommand": "cd client && npm install && npm run build-sh",
-  "outputDirectory": "client/dist",
-  "devCommand": "cd client && npm run dev",
-  "installCommand": "cd client && npm install",
-  "framework": "vite",
-  "routes": [
-    { "src": "/blog/.*", "dest": "/index.html" },
-    { "src": "/blogs/.*", "dest": "/index.html" },
-    { "src": "/login", "dest": "/index.html" },
-    { "src": "/signup", "dest": "/index.html" },
-    { "src": "/dashboard", "dest": "/index.html" },
-    { "src": "/create", "dest": "/index.html" },
-    { "src": "/edit/.*", "dest": "/index.html" },
-    { "src": "/(.*)", "dest": "/$1" }
-  ]
-}
+{"buildCommand": "cd client && npm install && npm run build-sh", "outputDirectory": "client/dist", "devCommand": "cd client && npm run dev", "installCommand": "cd client && npm install", "framework": "vite", "rewrites": [{"source": "/blog/(.*)", "destination": "/index.html"}, {"source": "/blogs/(.*)", "destination": "/index.html"}, {"source": "/login", "destination": "/index.html"}, {"source": "/signup", "destination": "/index.html"}, {"source": "/dashboard", "destination": "/index.html"}, {"source": "/create", "destination": "/index.html"}, {"source": "/edit/(.*)", "destination": "/index.html"}, {"source": "/profile", "destination": "/index.html"}, {"source": "/((?!api|_next|_static|favicon.ico|blog-icon.svg|manifest.json|service-worker.js).*)", "destination": "/index.html"}]}

@@ -3,19 +3,107 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/assets/blog-icon-9dc7a3cf.svg" />
-    <link rel="apple-touch-icon" href="/assets/blog-icon-9dc7a3cf.svg" />
+    <link rel="apple-touch-icon" href="/public/icons/icon-192x192.png" />
     <meta name="theme-color" content="#000000" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Google Fonts -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIkJsb2dIdWIiLAogICJzaG9ydF9uYW1lIjogIkJsb2dIdWIiLAogICJkZXNjcmlwdGlvbiI6ICJBIG1vZGVybiBibG9nZ2luZyBwbGF0Zm9ybSIsCiAgInN0YXJ0X3VybCI6ICIvIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZmZmZmZmIiwKICAidGhlbWVfY29sb3IiOiAiIzAwMDAwMCIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImljb25zL2ljb24tNzJ4NzIucG5nIiwKICAgICAgInNpemVzIjogIjcyeDcyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJpY29ucy9pY29uLTk2eDk2LnBuZyIsCiAgICAgICJzaXplcyI6ICI5Nng5NiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaWNvbnMvaWNvbi0xMjh4MTI4LnBuZyIsCiAgICAgICJzaXplcyI6ICIxMjh4MTI4IiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJpY29ucy9pY29uLTE0NHgxNDQucG5nIiwKICAgICAgInNpemVzIjogIjE0NHgxNDQiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9LAogICAgewogICAgICAic3JjIjogImljb25zL2ljb24tMTUyeDE1Mi5wbmciLAogICAgICAic2l6ZXMiOiAiMTUyeDE1MiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0sCiAgICB7CiAgICAgICJzcmMiOiAiaWNvbnMvaWNvbi0xOTJ4MTkyLnBuZyIsCiAgICAgICJzaXplcyI6ICIxOTJ4MTkyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UvcG5nIgogICAgfSwKICAgIHsKICAgICAgInNyYyI6ICJpY29ucy9pY29uLTM4NHgzODQucG5nIiwKICAgICAgInNpemVzIjogIjM4NHgzODQiLAogICAgICAidHlwZSI6ICJpbWFnZS9wbmciCiAgICB9LAogICAgewogICAgICAic3JjIjogImljb25zL2ljb24tNTEyeDUxMi5wbmciLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH0KICBdCn0K" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="description" content="A modern blogging platform where ideas inspire and stories matter. Share your thoughts and connect with diverse voices." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://my-blog-pre01.vercel.app/" />
+    <meta property="og:title" content="BlogHub - Ideas That Inspire, Stories That Matter" />
+    <meta property="og:description" content="A modern blogging platform where ideas inspire and stories matter. Share your thoughts and connect with diverse voices." />
+    <meta property="og:image" content="https://my-blog-pre01.vercel.app/public/blog-icon.svg" />
+    <meta property="og:site_name" content="BlogHub" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://my-blog-pre01.vercel.app/" />
+    <meta property="twitter:title" content="BlogHub - Ideas That Inspire, Stories That Matter" />
+    <meta property="twitter:description" content="A modern blogging platform where ideas inspire and stories matter. Share your thoughts and connect with diverse voices." />
+    <meta property="twitter:image" content="https://my-blog-pre01.vercel.app/public/blog-icon.svg" />
+
+    <!-- Additional SEO meta tags -->
+    <meta name="keywords" content="blog, blogging, writing, stories, ideas, platform, share, connect" />
+    <meta name="author" content="BlogHub" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://my-blog-pre01.vercel.app/" />
+
+    <!-- Preconnect to critical domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://my-blog-pre.onrender.com" crossorigin>
+    <link rel="dns-prefetch" href="https://my-blog-pre.onrender.com">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/assets/blog-icon-9dc7a3cf.svg" as="image" type="image/svg+xml">
+    <link rel="preload" href="data:text/jsx;base64,aW1wb3J0IFJlYWN0IGZyb20gJ3JlYWN0JwppbXBvcnQgUmVhY3RET00gZnJvbSAncmVhY3QtZG9tL2NsaWVudCcKaW1wb3J0IEFwcCBmcm9tICcuL0FwcCcKaW1wb3J0IHsgQXV0aFByb3ZpZGVyIH0gZnJvbSAnLi9jb250ZXh0L0F1dGhDb250ZXh0JwppbXBvcnQgJy4vaW5kZXguY3NzJwoKUmVhY3RET00uY3JlYXRlUm9vdChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgncm9vdCcpKS5yZW5kZXIoCiAgPFJlYWN0LlN0cmljdE1vZGU+CiAgICA8QXV0aFByb3ZpZGVyPgogICAgICA8QXBwIC8+CiAgICA8L0F1dGhQcm92aWRlcj4KICA8L1JlYWN0LlN0cmljdE1vZGU+Cik=" as="script" type="module">
+
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>BlogHub</title>
-    <script type="module" crossorigin src="/assets/index-ebec2047.js"></script>
-    <link rel="stylesheet" href="/assets/index-94e6c3b9.css">
+    <script type="module" crossorigin src="/assets/index-0685d0f1.js"></script>
+    <link rel="stylesheet" href="/assets/index-c601540f.css">
   </head>
   <body>
     <div id="root"></div>
     
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/public/service-worker.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+
+              // Check for updates
+              registration.onupdatefound = () => {
+                const installingWorker = registration.installing;
+                installingWorker.onstatechange = () => {
+                  if (installingWorker.state === 'installed') {
+                    if (navigator.serviceWorker.controller) {
+                      console.log('New content is available; please refresh.');
+                    } else {
+                      console.log('Content is cached for offline use.');
+                    }
+                  }
+                };
+              };
+            })
+            .catch(error => {
+              console.log('ServiceWorker registration failed: ', error);
+            });
+        });
+      }
+
+      // Add to home screen prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later
+        deferredPrompt = e;
+        // Show the install button
+        const installBtn = document.getElementById('install-button');
+        if (installBtn) {
+          installBtn.style.display = 'block';
+          installBtn.addEventListener('click', () => {
+            // Show the install prompt
+            deferredPrompt.prompt();
+            // Wait for the user to respond to the prompt
+            deferredPrompt.userChoice.then((choiceResult) => {
+              if (choiceResult.outcome === 'accepted') {
+                console.log('User accepted the install prompt');
+              } else {
+                console.log('User dismissed the install prompt');
+              }
+              deferredPrompt = null;
+            });
+          });
+        }
+      });
+    </script>
   </body>
 </html></qodoArtifact>

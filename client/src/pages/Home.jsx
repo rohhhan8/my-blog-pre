@@ -18,6 +18,62 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const timerRef = useRef(null);
 
+  // Add smooth scroll effect on component mount
+  useEffect(() => {
+    const smoothScrollTo = (targetY, duration = 1000) => {
+      const startY = window.pageYOffset;
+      const distance = targetY - startY;
+      const startTime = new Date().getTime();
+
+      const easeInOutQuart = (time, from, distance, duration) => {
+        if ((time /= duration / 2) < 1) return distance / 2 * time * time * time * time + from;
+        return -distance / 2 * ((time -= 2) * time * time * time - 2) + from;
+      };
+
+      const timer = setInterval(() => {
+        const time = new Date().getTime() - startTime;
+        const newY = easeInOutQuart(time, startY, distance, duration);
+
+        if (time >= duration) {
+          clearInterval(timer);
+          window.scrollTo(0, targetY);
+        } else {
+          window.scrollTo(0, newY);
+        }
+      }, 1000 / 60); // 60fps
+    };
+
+    const handleSmoothScroll = (e) => {
+      // Check if the clicked element is a scroll arrow or explore blogs link
+      const target = e.target.closest('a[href="#blogs"]');
+      if (target) {
+        console.log('Smooth scroll triggered!');
+        e.preventDefault();
+
+        const blogsSection = document.getElementById('blogs');
+        if (blogsSection) {
+          console.log('Blogs section found, starting custom smooth scroll...');
+          const offsetTop = blogsSection.offsetTop - 100; // Account for navbar
+
+          smoothScrollTo(offsetTop, 800); // 800ms duration
+          console.log('Custom smooth scroll started');
+        } else {
+          console.error('Blogs section not found!');
+        }
+      }
+    };
+
+    // Add event listener to the document
+    document.addEventListener('click', handleSmoothScroll);
+    console.log('Custom smooth scroll event listener added');
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('click', handleSmoothScroll);
+      console.log('Custom smooth scroll event listener removed');
+    };
+  }, []);
+
   // Function to refresh author profiles
   const refreshAuthorProfiles = async (blogs) => {
     // Create a Set to store unique author names
@@ -356,67 +412,10 @@ const Home = () => {
     }
   }, [searchTerm, blogs]);
 
-  // Enhanced function to smoothly scroll to blogs section with custom easing
-  const scrollToBlogs = () => {
-    const blogsSection = document.getElementById('blogs');
-    if (blogsSection) {
-      // Calculate dynamic navbar height for better accuracy
-      const navbar = document.querySelector('nav') || document.querySelector('header');
-      const navbarHeight = navbar ? navbar.offsetHeight : 80;
-
-      // Get current position and target position
-      const elementPosition = blogsSection.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.pageYOffset - navbarHeight - 20; // Extra 20px padding
-
-      // Add visual feedback immediately
-      const button = document.querySelector('.scroll-down-arrow-button');
-      if (button) {
-        button.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-          button.style.transform = '';
-        }, 150);
-      }
-
-      // Custom smooth scroll with easing for better control
-      const startPosition = window.pageYOffset;
-      const distance = offsetPosition - startPosition;
-      const duration = 1000; // 1 second duration
-      let start = null;
-
-      // Easing function for smooth animation
-      const easeInOutCubic = (t) => {
-        return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-      };
-
-      const animation = (currentTime) => {
-        if (start === null) start = currentTime;
-        const timeElapsed = currentTime - start;
-        const progress = Math.min(timeElapsed / duration, 1);
-        const ease = easeInOutCubic(progress);
-
-        window.scrollTo(0, startPosition + distance * ease);
-
-        if (timeElapsed < duration) {
-          requestAnimationFrame(animation);
-        }
-      };
-
-      // Fallback to native smooth scroll if requestAnimationFrame is not supported
-      if (window.requestAnimationFrame) {
-        requestAnimationFrame(animation);
-      } else {
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }
-    }
-  };
-
   return (
     <div className="bg-blog-bg dark:bg-black min-h-screen transition-all duration-500">
-      {/* Full-screen hero section with monochromatic design - improved spacing for all devices */}
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 sm:pt-24 md:pt-28 lg:pt-32 xl:pt-36">
+      {/* Full-screen hero section with monochromatic design */}
+      <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 sm:pt-28">
         {/* Background with subtle pattern */}
         <div className="absolute inset-0 bg-white dark:bg-black">
           <div className="absolute inset-0 opacity-5 dark:opacity-10"
@@ -434,57 +433,57 @@ const Home = () => {
           <div className="absolute top-1/2 right-1/3 w-48 h-48 border border-gray-200 dark:border-gray-700 rounded-full opacity-15 dark:opacity-10 animate-pulse animation-delay-1000"></div>
         </div>
 
-        {/* Hero content - improved positioning and spacing */}
+        {/* Hero content */}
         <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
           <div className="max-w-4xl mx-auto">
-            {/* Modern monochromatic typography and animations - better device consistency */}
-            <div className="text-center py-8 sm:py-12 md:py-16 lg:py-20">
-              <div className="mb-4 sm:mb-6 md:mb-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 mb-4 sm:mb-6">
+            {/* Modern monochromatic typography and animations */}
+            <div className="text-center">
+              <div className="mb-2 sm:mb-4 -mt-16 sm:-mt-24">
+                <div className="inline-flex items-center justify-center w-20 h-20 sm:w-28 sm:h-28 mb-2 sm:mb-4">
                   <div className="relative">
-                    <div className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 dark:text-white font-serif tracking-tighter">
+                    <div className="text-5xl sm:text-7xl font-black text-gray-900 dark:text-white font-serif tracking-tighter">
                       B
                     </div>
-                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-gray-900 dark:bg-white rounded-full"></div>
-                    <div className="absolute -bottom-1 left-0 w-full h-1 sm:h-1.5 bg-gray-900 dark:bg-white"></div>
+                    <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-gray-900 dark:bg-white rounded-full"></div>
+                    <div className="absolute -bottom-1 left-0 w-full h-1.5 bg-gray-900 dark:bg-white"></div>
                   </div>
                 </div>
               </div>
 
-              <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 md:mb-8 tracking-tight leading-tight px-2">
+              <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-5 tracking-tight leading-tight px-2">
                 <span className="block">Ideas That Inspire</span>
                 <span className="block mt-1 sm:mt-2">
                   <span className="gradient-text">Stories That Matter</span>
                 </span>
               </h1>
 
-              <div className="relative mb-4 sm:mb-6 md:mb-8">
-                <p className="text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-6 sm:mb-8 md:mb-10 animate-fade-in-up animation-delay-300 leading-relaxed font-light px-2 sm:px-4">
+              <div className="relative mb-3 sm:mb-4 md:mb-6">
+                <p className="text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl text-gray-700 dark:text-gray-300 max-w-4xl mx-auto mb-4 sm:mb-5 md:mb-7 animate-fade-in-up animation-delay-300 leading-relaxed font-light px-2 sm:px-4">
                   Discover thought-provoking content from diverse voices. Connect with ideas that challenge and inspire in our curated digital space.
                 </p>
               </div>
 
               {/* Search bar moved above date/time display */}
-              <div className="max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto relative mb-6 sm:mb-8 md:mb-10 animate-fade-in-up animation-delay-400">
+              <div className="max-w-sm sm:max-w-md md:max-w-lg mx-auto relative mb-5 md:mb-7 animate-fade-in-up animation-delay-400">
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Search blogs..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2.5 sm:py-3 pl-10 pr-10 text-sm sm:text-base md:text-lg rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white shadow-sm transition-all duration-200"
+                    className="w-full px-4 py-3 pl-10 pr-10 text-base sm:text-lg rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white shadow-sm"
                   />
-                  <div className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                   {searchTerm && (
                     <button
                       onClick={() => setSearchTerm("")}
-                      className="absolute right-3 sm:right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-200"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -492,29 +491,29 @@ const Home = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 justify-center px-2 sm:px-0 mb-6 sm:mb-8 md:mb-10">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center px-2 sm:px-0">
                 <Link
                   to={currentUser ? "/create" : "/login"}
-                  className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 w-full sm:w-auto py-2.5 sm:py-3 md:py-4 px-5 sm:px-6 md:px-8 text-sm sm:text-base md:text-lg rounded-md flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 hover:shadow-lg hover:transform hover:scale-[1.02] font-medium"
+                  className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 w-full sm:w-auto py-3 sm:py-4 px-6 sm:px-8 text-base sm:text-lg rounded-md flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-lg hover:transform hover:scale-[1.02] font-medium"
                 >
                   {currentUser ? "Write a Blog" : "Start Writing"}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </Link>
-                <button
-                  onClick={scrollToBlogs}
-                  className="bg-white dark:bg-black text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full sm:w-auto py-2.5 sm:py-3 md:py-4 px-5 sm:px-6 md:px-8 text-sm sm:text-base md:text-lg rounded-md flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 hover:shadow-lg hover:transform hover:scale-[1.02] font-medium"
+                <a
+                  href="#blogs"
+                  className="bg-white dark:bg-black text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 w-full sm:w-auto py-3 sm:py-4 px-6 sm:px-8 text-base sm:text-lg rounded-md flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-lg hover:transform hover:scale-[1.02] font-medium"
                 >
                   Explore Blogs
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                   </svg>
-                </button>
+                </a>
               </div>
 
               {/* Date and time display below buttons - hidden on mobile */}
-              <div className="mt-6 sm:mt-8 md:mt-10 hidden sm:flex flex-row items-center justify-center gap-3 sm:gap-4 animate-fade-in-up animation-delay-600 mb-12 sm:mb-16 md:mb-20">
+              <div className="mt-8 sm:mt-10 hidden sm:flex flex-row items-center justify-center gap-4 animate-fade-in-up animation-delay-600">
                 <div className="flex items-center gap-3 bg-white/80 dark:bg-black/80 px-4 py-2 rounded-full shadow-sm border border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300">
                   <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -540,48 +539,45 @@ const Home = () => {
                   </span>
                 </div>
               </div>
-
-              {/* Scroll indicator positioned below all content */}
-              <div className="flex justify-center mt-12 sm:mt-8 md:mt-12 lg:mt-16 mb-8 sm:mb-12 md:mb-16">
-                <button
-                  onClick={scrollToBlogs}
-                  className="scroll-down-arrow-button focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-white focus:ring-opacity-50 rounded-full transition-all duration-200"
-                  aria-label="Scroll down to view blogs"
-                >
-                  <div className="scroll-down-arrow-inner">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 text-gray-900 dark:text-white transition-all duration-200"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                      />
-                    </svg>
-                  </div>
-                </button>
-              </div>
             </div>
           </div>
         </div>
+
+        {/* Scroll indicator with monochromatic design - positioned better for mobile */}
+        <div className="scroll-down-arrow">
+          <a href="#blogs" className="block">
+            <div className="scroll-down-arrow-inner">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 sm:h-10 sm:w-10 text-gray-900 dark:text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                />
+              </svg>
+              <span className="sr-only">Scroll down to view blogs</span>
+            </div>
+          </a>
+        </div>
       </div>
 
-      {/* Blog content section with monochromatic design - improved spacing */}
-      <div id="blogs" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-20 sm:pt-24 md:pt-32 lg:pt-36 pb-12 sm:pb-20 bg-white dark:bg-black">
-        <div className="text-center mb-6 sm:mb-8 md:mb-12 lg:mb-16">
-          <h2 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white font-playfair mb-3 sm:mb-4 md:mb-6 lg:mb-8 tracking-tight px-2">
+      {/* Blog content section with monochromatic design */}
+      <div id="blogs" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-28 pb-12 sm:pb-20 bg-white dark:bg-black">
+        <div className="text-center mb-8 sm:mb-10 md:mb-14">
+          <h2 className="text-3xl xs:text-4xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white font-playfair mb-3 sm:mb-4 md:mb-7 tracking-tight px-2">
             Latest <span className="relative inline-block">
               Blogs
-              <span className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-[2px] sm:h-[3px] bg-gray-900 dark:bg-white"></span>
+              <span className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-[3px] bg-gray-900 dark:bg-white"></span>
             </span>
           </h2>
-          <p className="text-sm xs:text-base sm:text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl sm:max-w-3xl mx-auto font-light px-2 sm:px-4 mb-4 sm:mb-6 md:mb-8">
+          <p className="text-sm xs:text-base sm:text-lg text-gray-700 dark:text-gray-300 max-w-3xl mx-auto font-light px-2 sm:px-4 mb-4 sm:mb-5 md:mb-7">
             Explore insightful perspectives and expert analysis from our community of thought leaders.
           </p>
         </div>

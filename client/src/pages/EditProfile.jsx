@@ -275,7 +275,7 @@ const EditProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-blog-bg dark:bg-black page-content">
+    <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 pb-12">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="p-6 md:p-8 border-b border-gray-200 dark:border-gray-700">

@@ -269,7 +269,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-blog-bg dark:bg-black page-content">
+    <div className="min-h-screen bg-blog-bg dark:bg-black pt-24 sm:pt-28 pb-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-black rounded-lg shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
           {/* Warning message for limited profile info */}

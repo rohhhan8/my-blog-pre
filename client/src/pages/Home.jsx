@@ -4,7 +4,7 @@ import axios from "axios";
 import BlogCard from "../components/BlogCard";
 import { useAuth } from "../context/AuthContext";
 import { getUserProfile } from "../services/profileService";
-import { getAllBlogs } from "../services/blogService";
+import { getAllBlogs, likeBlog, trackBlogView } from "../services/blogService";
 import apiClient from "../services/apiClient";
 
 const Home = () => {

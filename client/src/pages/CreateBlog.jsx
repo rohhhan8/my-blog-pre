@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { createBlog } from "../services/blogService";
 import Input from "../components/ui/Input";
 import Button from "../components/ui/Button";
 
@@ -157,65 +158,32 @@ const CreateBlog = () => {
         }
       }
 
-      // Create the blog post with a timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      // Use optimized blog service
+      const response = await createBlog(
+        {
+          title,
+          content,
+          image_url: finalImageUrl?.trim() || null
+        },
+        idToken
+      );
 
-      try {
-        // Create the blog post
-        const response = await axios.post(
-          backendUrl,
-          {
-            title,
-            content,
-            image_url: finalImageUrl?.trim() || null
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-            signal: controller.signal
-          }
-        );
-
-        clearTimeout(timeoutId);
-
-        const newBlogId = response.data._id || response.data.id;
-        if (!newBlogId) {
-          throw new Error("No blog ID returned from server");
-        }
-
-        // Clear the pending blog data since it was successfully created
-        localStorage.removeItem('pendingBlogData');
-
-        // Show success message before navigating
-        setError("");
-        setLoading(false);
-
-        // Navigate to the new blog post with a small delay to show success state
-        setTimeout(() => {
-          navigate(`/blog/${newBlogId}`);
-        }, 500);
-
-        return; // Exit early to prevent the finally block from running
-      } catch (postError) {
-        clearTimeout(timeoutId);
-
-        // If it's an abort error (timeout), provide a more helpful message
-        if (postError.name === 'AbortError' || postError.code === 'ECONNABORTED') {
-          console.log("Blog creation is taking longer than expected, but may still succeed in the background.");
-          setError("Blog creation is taking longer than expected. Your blog may still be created in the background. Please check your dashboard in a few moments.");
-
-          // Don't remove pendingBlogData yet
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 3000);
-
-          return; // Exit early
-        }
-
-        throw postError; // Re-throw for the outer catch block
+      const newBlogId = response._id || response.id;
+      if (!newBlogId) {
+        throw new Error("No blog ID returned from server");
       }
+
+      // Clear the pending blog data since it was successfully created
+      localStorage.removeItem('pendingBlogData');
+
+      // Show success message
+      setSuccess("Blog created successfully! Redirecting...");
+      setError("");
+
+      // Navigate to the new blog post
+      setTimeout(() => {
+        navigate(`/blog/${newBlogId}`);
+      }, 1000);
     } catch (err) {
       console.error("Failed to create blog:", err);
       if (axios.isAxiosError(err)) {

@@ -213,6 +213,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-user-id',  # Add this for Firebase authentication
 ]
 
 # Configure logging

@@ -179,7 +179,12 @@ export const deleteBlog = async (id, idToken, customHeaders = {}) => {
 
   // Single, direct API call - no complex retry logic
   try {
-    const response = await fetch(`/api/blogs/${id}/`, {
+    // Construct the URL and log it for debugging
+    const apiUrl = `${import.meta.env.VITE_API_URL}/api/blogs/${id}/`;
+    console.log(`🌐 Making DELETE request to: ${apiUrl}`);
+    console.log(`🔑 Headers:`, headers);
+
+    const response = await fetch(apiUrl, {
       method: 'DELETE',
       headers: headers,
       credentials: 'include'

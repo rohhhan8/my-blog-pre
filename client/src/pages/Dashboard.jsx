@@ -501,12 +501,13 @@ const Dashboard = () => {
     if (!deleteId) return;
 
     setDeleteLoading(true);
+
+    // Get the blog to delete for debugging (move outside try block)
+    const blogToDelete = blogs.find(blog => blog._id === deleteId);
+    console.log("Blog to delete:", blogToDelete);
+
     try {
       console.log(`🗑️ Starting deletion process for blog ID: ${deleteId}`);
-
-      // Get the blog to delete for debugging
-      const blogToDelete = blogs.find(blog => blog._id === deleteId);
-      console.log("Blog to delete:", blogToDelete);
 
       // Optimistically remove the blog from the UI for immediate feedback
       setBlogs(prev => prev.filter(blog => blog._id !== deleteId));

@@ -155,195 +155,63 @@ export const getBlogById = async (id) => {
 };
 
 /**
- * Delete a blog by ID
+ * Delete a blog by ID - Simplified and optimized version
  * @param {string} id Blog ID
  * @param {string} idToken Firebase ID token
  * @param {Object} customHeaders Optional custom headers to include
  * @returns {Promise<Object>} Response object
  */
 export const deleteBlog = async (id, idToken, customHeaders = {}) => {
-  console.log(`Attempting to delete blog with ID: ${id}`);
+  console.log(`🗑️ Starting blog deletion for ID: ${id}`);
 
-  // Get current user info from Firebase token
-  let userInfo = {};
-  try {
-    // Try to extract user info from token
-    const tokenParts = idToken.split('.');
-    if (tokenParts.length === 3) {
-      const payload = JSON.parse(atob(tokenParts[1]));
-      userInfo = {
-        'X-User-ID': payload.user_id || payload.sub || '',
-        'X-User-Email': payload.email || '',
-        'X-User-Name': payload.name || ''
-      };
-      console.log("Extracted user info from token:", userInfo);
-
-      // Store user info in localStorage for future requests
-      localStorage.setItem('userInfo', JSON.stringify({
-        uid: payload.user_id || payload.sub || '',
-        email: payload.email || '',
-        displayName: payload.name || ''
-      }));
-    }
-  } catch (e) {
-    console.error("Error extracting user info from token:", e);
+  if (!id || !idToken) {
+    throw new Error('Blog ID and authentication token are required');
   }
 
-  // Combine default headers with custom headers
+  // Simple, clean headers - only what's necessary
   const headers = {
     'Authorization': `Bearer ${idToken}`,
     'Content-Type': 'application/json',
-    ...userInfo,
     ...customHeaders
   };
 
-  // Store token in localStorage and set in apiClient
-  localStorage.setItem('authToken', idToken);
+  console.log(`📤 Making DELETE request with minimal headers`);
 
-  // Extract uid from token payload for direct use in headers
-  let uid = '';
+  // Single, direct API call - no complex retry logic
   try {
-    const tokenParts = idToken.split('.');
-    if (tokenParts.length === 3) {
-      const payload = JSON.parse(atob(tokenParts[1]));
-      uid = payload.user_id || payload.sub || '';
+    const response = await fetch(`/api/blogs/${id}/`, {
+      method: 'DELETE',
+      headers: headers,
+      credentials: 'include'
+    });
 
-      // If uid is still missing, try to extract from other fields
-      if (!uid && payload.firebase && payload.firebase.identities && payload.firebase.identities.email) {
-        uid = payload.firebase.identities.email[0];
-        console.log("Using email as uid fallback:", uid);
-      }
+    console.log(`📥 Response status: ${response.status}`);
 
-      // If still no uid but we have email, use that
-      if (!uid && payload.email) {
-        uid = payload.email;
-        console.log("Using email as uid fallback:", uid);
-      }
+    if (response.ok) {
+      console.log(`✅ Blog ${id} deleted successfully`);
 
-      // Store uid separately for easier access
-      localStorage.setItem('userUid', uid);
-
-      // Log the full token payload for debugging
-      console.log("Token payload for debugging:", payload);
-    }
-  } catch (e) {
-    console.error("Error extracting uid from token:", e);
-  }
-
-  // Add uid to headers in multiple formats to ensure server can find it
-  headers['X-User-UID'] = uid;
-  headers['uid'] = uid;
-  userInfo['uid'] = uid;
-
-  apiClient.setAuthToken(idToken, {
-    uid: uid,
-    email: userInfo['X-User-Email'],
-    displayName: userInfo['X-User-Name']
-  });
-
-  // Try using apiClient first (which has built-in retry logic)
-  try {
-    console.log(`Making DELETE request to /blogs/${id}/ using apiClient`);
-    console.log("With headers:", headers);
-
-    const response = await apiClient.delete(`/blogs/${id}/`, { headers });
-    console.log("Delete successful with apiClient:", response);
-
-    // Update localStorage to remove this blog from liked blogs if it exists
-    try {
-      const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
-      if (likedBlogs[id]) {
+      // Clean up local storage
+      try {
+        const likedBlogs = JSON.parse(localStorage.getItem('likedBlogs') || '{}');
         delete likedBlogs[id];
         localStorage.setItem('likedBlogs', JSON.stringify(likedBlogs));
-        console.log(`Removed blog ${id} from liked blogs in localStorage`);
-      }
-    } catch (storageErr) {
-      console.error("Error updating localStorage:", storageErr);
-    }
 
-    // Update sessionStorage to remove this blog from cached blogs
-    try {
-      const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
-      const updatedBlogs = cachedBlogs.filter(blog => blog._id !== id);
-      sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
-      console.log(`Removed blog ${id} from cached blogs in sessionStorage`);
-    } catch (storageErr) {
-      console.error("Error updating sessionStorage:", storageErr);
-    }
-
-    return response;
-  } catch (apiClientError) {
-    console.error("Delete with apiClient failed:", apiClientError);
-
-    // Fall back to direct axios calls
-    try {
-      // First try with trailing slash
-      console.log(`Making DELETE request to /api/blogs/${id}/`);
-      const response = await axios.delete(`/api/blogs/${id}/`, { headers });
-      console.log("Delete successful with trailing slash:", response);
-
-      // Update sessionStorage to remove this blog from cached blogs
-      try {
         const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
         const updatedBlogs = cachedBlogs.filter(blog => blog._id !== id);
         sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
       } catch (storageErr) {
-        console.error("Error updating sessionStorage:", storageErr);
+        console.warn('Storage cleanup failed:', storageErr);
       }
 
-      return response;
-    } catch (error) {
-      console.log("Delete with trailing slash failed:", error);
-
-      // If that fails, try without trailing slash
-      try {
-        console.log(`Making DELETE request to /api/blogs/${id}`);
-        const response = await axios.delete(`/api/blogs/${id}`, { headers });
-        console.log("Delete successful without trailing slash:", response);
-
-        // Update sessionStorage to remove this blog from cached blogs
-        try {
-          const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
-          const updatedBlogs = cachedBlogs.filter(blog => blog._id !== id);
-          sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
-        } catch (storageErr) {
-          console.error("Error updating sessionStorage:", storageErr);
-        }
-
-        return response;
-      } catch (secondError) {
-        console.log("Delete without trailing slash failed:", secondError);
-
-        // If both fail, try with a different approach using fetch API
-        console.log("Trying with fetch API as last resort");
-
-        // Add a timestamp to avoid caching issues
-        const timestamp = new Date().getTime();
-        const url = `/api/blogs/${id}/?_=${timestamp}`;
-
-        const fetchResponse = await fetch(url, {
-          method: 'DELETE',
-          headers: headers
-        });
-
-        if (!fetchResponse.ok) {
-          throw new Error(`Fetch delete failed with status ${fetchResponse.status}`);
-        }
-
-        console.log("Delete successful with fetch API:", fetchResponse);
-
-        // Update sessionStorage to remove this blog from cached blogs
-        try {
-          const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
-          const updatedBlogs = cachedBlogs.filter(blog => blog._id !== id);
-          sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
-        } catch (storageErr) {
-          console.error("Error updating sessionStorage:", storageErr);
-        }
-
-        return { status: fetchResponse.status };
-      }
+      return { status: response.status, success: true };
+    } else {
+      const errorText = await response.text();
+      console.error(`❌ Delete failed: ${response.status} - ${errorText}`);
+      throw new Error(`Delete failed with status ${response.status}: ${errorText}`);
     }
+  } catch (error) {
+    console.error(`💥 Delete error:`, error);
+    throw new Error(`Failed to delete blog: ${error.message}`);
   }
 };
 

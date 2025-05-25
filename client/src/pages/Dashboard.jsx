@@ -502,255 +502,91 @@ const Dashboard = () => {
 
     setDeleteLoading(true);
     try {
+      console.log(`🗑️ Starting deletion process for blog ID: ${deleteId}`);
+
       // Get the blog to delete for debugging
       const blogToDelete = blogs.find(blog => blog._id === deleteId);
-      console.log("Attempting to delete blog:", blogToDelete);
+      console.log("Blog to delete:", blogToDelete);
 
-      // Optimistically remove the blog from the UI
+      // Optimistically remove the blog from the UI for immediate feedback
       setBlogs(prev => prev.filter(blog => blog._id !== deleteId));
 
-      // Store the blog in localStorage in case we need to restore it
+      // Get fresh authentication token
+      const idToken = await currentUser.getIdToken(true);
+      console.log("✅ Got fresh authentication token");
+
+      // Use our streamlined blog service to delete the blog
+      const response = await deleteBlog(deleteId, idToken);
+      console.log("✅ Blog deleted successfully:", response);
+
+      // Clean up cached data
       try {
-        localStorage.setItem(`deletedBlog_${deleteId}`, JSON.stringify(blogToDelete));
+        // Remove from cached blogs
+        const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
+        const updatedBlogs = cachedBlogs.filter(blog => blog._id !== deleteId);
+        sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
+
+        // Remove from cached user blogs
+        const cachedUserBlogs = JSON.parse(sessionStorage.getItem('cachedUserBlogs') || '[]');
+        const updatedUserBlogs = cachedUserBlogs.filter(blog => blog._id !== deleteId);
+        sessionStorage.setItem('cachedUserBlogs', JSON.stringify(updatedUserBlogs));
+
+        console.log("✅ Cache cleanup completed");
       } catch (storageErr) {
-        console.error("Error storing blog in localStorage:", storageErr);
+        console.warn("Cache cleanup failed:", storageErr);
       }
 
-      // Force token refresh to get a fresh token
-      await currentUser.getIdToken(true);
+      // Close modal and reset state
+      setShowDeleteModal(false);
+      setDeleteId(null);
+      setError("");
 
-      // Add a small delay to ensure token is valid (helps with clock skew issues)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Show success notification
+      const successMessage = document.createElement('div');
+      successMessage.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 font-medium';
+      successMessage.textContent = '✅ Blog deleted successfully!';
+      document.body.appendChild(successMessage);
 
-      // Get a fresh token after forcing refresh
-      const idToken = await currentUser.getIdToken();
-      console.log("Using fresh token for delete");
-
-      // Store token in localStorage
-      localStorage.setItem('authToken', idToken);
-
-      // Store user info in localStorage
-      localStorage.setItem('userInfo', JSON.stringify({
-        uid: currentUser.uid,
-        email: currentUser.email,
-        displayName: currentUser.displayName || ''
-      }));
-
-      // Set the token in apiClient
-      apiClient.setAuthToken(idToken, {
-        uid: currentUser.uid,
-        email: currentUser.email,
-        displayName: currentUser.displayName || ''
-      });
-
-      // Add custom headers to help with authentication
-      const customHeaders = {
-        'X-User-ID': currentUser.uid,
-        'X-User-Email': currentUser.email,
-        'X-User-Display-Name': currentUser.displayName || '',
-        'X-Firebase-UID': currentUser.uid,  // Add Firebase UID explicitly
-        'uid': currentUser.uid,  // Add uid directly for Firebase auth
-        'firebase-uid': currentUser.uid,  // Alternative format
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      };
-
-      // Use our blog service to delete the blog with custom headers
-      try {
-        const response = await deleteBlog(deleteId, idToken, customHeaders);
-        console.log("Delete successful:", response);
-
-        // Update cached blogs in sessionStorage
-        try {
-          const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
-          const updatedBlogs = cachedBlogs.filter(blog => blog._id !== deleteId);
-          sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
-          console.log(`Removed blog ${deleteId} from cached blogs in sessionStorage`);
-        } catch (storageErr) {
-          console.error("Error updating sessionStorage:", storageErr);
+      // Remove notification after 3 seconds
+      setTimeout(() => {
+        if (document.body.contains(successMessage)) {
+          document.body.removeChild(successMessage);
         }
+      }, 3000);
 
-        // Update cached user blogs in sessionStorage
-        try {
-          const cachedUserBlogs = JSON.parse(sessionStorage.getItem('cachedUserBlogs') || '[]');
-          const updatedUserBlogs = cachedUserBlogs.filter(blog => blog._id !== deleteId);
-          sessionStorage.setItem('cachedUserBlogs', JSON.stringify(updatedUserBlogs));
-          console.log(`Removed blog ${deleteId} from cached user blogs in sessionStorage`);
-        } catch (storageErr) {
-          console.error("Error updating sessionStorage:", storageErr);
-        }
-
-        // Close the modal
-        setShowDeleteModal(false);
-        setDeleteId(null);
-        setError("");
-
-        // Show success message
-        const successMessage = document.createElement('div');
-        successMessage.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
-        successMessage.textContent = 'Blog deleted successfully';
-        document.body.appendChild(successMessage);
-
-        // Remove the success message after 3 seconds
-        setTimeout(() => {
-          if (document.body.contains(successMessage)) {
-            document.body.removeChild(successMessage);
-          }
-        }, 3000);
-
-        // Trigger a refresh of the blog list
-        setTimeout(() => {
-          setRefreshKey(prevKey => prevKey + 1);
-        }, 1000);
-
-        return;
-      } catch (deleteError) {
-        console.error("Error with deleteBlog service:", deleteError);
-        // Continue to alternative approaches
-      }
-
-      // If the service function failed, try a direct fetch approach
-      try {
-        console.log("Trying direct fetch approach");
-
-        // Add a timestamp to avoid caching issues
-        const timestamp = new Date().getTime();
-        const url = `/api/blogs/${deleteId}/?_=${timestamp}`;
-
-        // Extract uid directly from token for Firebase auth
-        let uid = '';
-        try {
-          const tokenParts = idToken.split('.');
-          if (tokenParts.length === 3) {
-            const payload = JSON.parse(atob(tokenParts[1]));
-            uid = payload.user_id || payload.sub || '';
-
-            // If uid is still missing, try to extract from other fields
-            if (!uid && payload.firebase && payload.firebase.identities && payload.firebase.identities.email) {
-              uid = payload.firebase.identities.email[0];
-              console.log("Using email as uid fallback:", uid);
-            }
-
-            // If still no uid but we have email, use that
-            if (!uid && payload.email) {
-              uid = payload.email;
-              console.log("Using email as uid fallback:", uid);
-            }
-
-            // Log the full token payload for debugging
-            console.log("Token payload for debugging:", payload);
-          }
-        } catch (tokenError) {
-          console.error('Error extracting uid from token:', tokenError);
-        }
-
-        const fetchResponse = await fetch(url, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${idToken}`,
-            'Content-Type': 'application/json',
-            'uid': uid || currentUser.uid,  // Add uid directly for Firebase auth
-            'firebase-uid': uid || currentUser.uid,  // Alternative format
-            'X-Firebase-UID': uid || currentUser.uid,  // Another alternative format
-            'X-User-UID': uid || currentUser.uid,  // Another format
-            'X-User-Email': currentUser.email,
-            'X-User-Display-Name': currentUser.displayName || '',
-            'X-Blog-Author': 'true',  // Indicate this user is the author
-            ...customHeaders
-          }
-        });
-
-        if (!fetchResponse.ok) {
-          throw new Error(`Fetch delete failed with status ${fetchResponse.status}`);
-        }
-
-        console.log("Delete successful with fetch API:", fetchResponse);
-
-        // Update cached blogs in sessionStorage
-        try {
-          const cachedBlogs = JSON.parse(sessionStorage.getItem('cachedBlogs') || '[]');
-          const updatedBlogs = cachedBlogs.filter(blog => blog._id !== deleteId);
-          sessionStorage.setItem('cachedBlogs', JSON.stringify(updatedBlogs));
-        } catch (storageErr) {
-          console.error("Error updating sessionStorage:", storageErr);
-        }
-
-        // Close the modal
-        setShowDeleteModal(false);
-        setDeleteId(null);
-        setError("");
-
-        // Show success message
-        const successMessage = document.createElement('div');
-        successMessage.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
-        successMessage.textContent = 'Blog deleted successfully';
-        document.body.appendChild(successMessage);
-
-        // Remove the success message after 3 seconds
-        setTimeout(() => {
-          if (document.body.contains(successMessage)) {
-            document.body.removeChild(successMessage);
-          }
-        }, 3000);
-
-        // Trigger a refresh of the blog list
-        setTimeout(() => {
-          setRefreshKey(prevKey => prevKey + 1);
-        }, 1000);
-
-        return;
-      } catch (fetchError) {
-        console.error("Fetch delete approach failed:", fetchError);
-      }
-
-      // If all delete attempts failed, restore the blog in the UI
-      setBlogs(prev => {
-        // Check if the blog is already in the list
-        if (prev.some(blog => blog._id === deleteId)) {
-          return prev;
-        }
-        // Otherwise, restore it
-        return blogToDelete ? [...prev, blogToDelete] : prev;
-      });
-
-      throw new Error("All delete attempts failed");
+      // Refresh the blog list
+      setTimeout(() => {
+        setRefreshKey(prevKey => prevKey + 1);
+      }, 500);
     } catch (err) {
-      console.error("Delete error:", err);
+      console.error("❌ Delete error:", err);
 
-      // Log detailed error information
-      if (err.response) {
-        console.error("Response status:", err.response.status);
-        console.error("Response data:", err.response.data);
-        console.error("Response headers:", err.response.headers);
-
-        const status = err.response.status;
-        const detail = err.response.data?.detail || err.message;
-
-        // Set appropriate error message
-        setError(
-          status === 403
-            ? "Permission denied. You can only delete your own blogs."
-            : status === 404
-            ? "Blog not found. It may have been already deleted."
-            : `Failed to delete blog: ${detail}`
-        );
-
-        // Close the modal only for 404 errors (blog already deleted)
-        if (status === 404) {
-          setShowDeleteModal(false);
-          setDeleteId(null);
-          // Remove from UI if it's a 404
-          setBlogs(prev => prev.filter(blog => blog._id !== deleteId));
-        }
-      } else {
-        console.error("Error object:", err);
-        setError(`Failed to delete blog: ${err.message}`);
+      // Restore the blog in the UI since deletion failed
+      if (blogToDelete) {
+        setBlogs(prev => {
+          // Check if the blog is already in the list
+          if (prev.some(blog => blog._id === deleteId)) {
+            return prev;
+          }
+          // Otherwise, restore it
+          return [...prev, blogToDelete];
+        });
       }
 
-      // For server errors, close the modal
-      if (!err.response || err.response.status >= 500) {
+      // Set user-friendly error message
+      setError(
+        err.message.includes('404')
+          ? "Blog not found. It may have been already deleted."
+          : err.message.includes('403')
+          ? "Permission denied. You can only delete your own blogs."
+          : `Failed to delete blog: ${err.message}`
+      );
+
+      // Close modal for 404 errors (blog already deleted)
+      if (err.message.includes('404')) {
         setShowDeleteModal(false);
         setDeleteId(null);
+        setBlogs(prev => prev.filter(blog => blog._id !== deleteId));
       }
     } finally {
       setDeleteLoading(false);

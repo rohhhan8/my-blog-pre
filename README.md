@@ -93,8 +93,3 @@ project/
 
 - Anyone can view the list of blogs and individual blog posts
 - Create an account or log in to create/edit/delete your own blog posts
-- Access protected routes like `/create` and `/edit/:id` once authenticated
-
-## License
-
-MIT
